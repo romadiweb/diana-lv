@@ -29,7 +29,7 @@ export default function QuizSetupModal({
           <button
             type="button"
             onClick={() => onPick("50")}
-            className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white"
+            className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white transition hover:cursor-pointer hover:scale-102"
           >
             50 nejauši
           </button>
@@ -37,7 +37,7 @@ export default function QuizSetupModal({
           <button
             type="button"
             onClick={() => onPick("all")}
-            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa"
+            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa transition hover:cursor-pointer hover:scale-102"
           >
             Visi jautājumi
           </button>
@@ -49,7 +49,7 @@ export default function QuizSetupModal({
             onClose();
             navigate("/");
           }}
-          className="mt-4 w-full rounded-2xl px-5 py-3 text-sm font-semibold text-cocoa/70 hover:bg-fog/30"
+          className="mt-4 w-full rounded-2xl px-5 py-3 text-sm font-semibold text-cocoa/70 hover:bg-fog/30 border hover:cursor-pointer hover:underline"
         >
           Atgriezties sākumā
         </button>

@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
+import SiteFooter from "../components/SiteFooter";
 import QuizSetupModal from "../quiz/QuizSetupModal";
 import QuestionCard, { type QuizQuestion } from "../quiz/QuestionCard";
 import QuizProgress from "../quiz/QuizProgress";
 import ResultsPanel, { type QuizResult } from "../quiz/ResultsPanel";
 import { shuffleArray } from "../quiz/shuffle";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 type TopicRow = {
   id: string;
@@ -140,7 +143,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     const picked =
       mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
 
-    // randomize choices order per question
     const prepared: QuizQuestion[] = picked.map((q) => ({
       id: q.id,
       text: q.text,
@@ -148,7 +150,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       imageUrl: q.image_url ?? undefined,
       imageAlt: q.image_alt ?? undefined,
       explanation: q.explanation ?? undefined,
-      // shuffle choices (keep isCorrect in memory)
       choices: shuffleArray(q.choices).map((c) => ({
         id: c.id,
         text: c.text,
@@ -182,6 +183,10 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     });
   };
 
+  const answeredCount = useMemo(() => {
+    return Object.values(answersByQid).filter((arr) => (arr?.length ?? 0) > 0).length;
+  }, [answersByQid]);
+
   const canGoNext = useMemo(() => {
     if (!current) return false;
     const picked = answersByQid[current.id] ?? [];
@@ -198,19 +203,29 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   const goPrev = () => setCurrentIndex((i) => Math.max(0, i - 1));
 
+  // Stop early -> show results for answered questions only
+  const stopAndShowResults = () => {
+    setFinished(true);
+  };
+
+  // Results calculated ONLY for answered questions
   const result: QuizResult | null = useMemo(() => {
     if (!finished) return null;
 
+    const answeredIds = Object.entries(answersByQid)
+      .filter(([, ids]) => ids && ids.length > 0)
+      .map(([qid]) => qid);
+
+    const answeredSet = new Set(answeredIds);
+    const answeredQuestions = quizQuestions.filter((q) => answeredSet.has(q.id));
+
     let correct = 0;
-    let total = quizQuestions.length;
+    const total = answeredQuestions.length;
 
-    const details = quizQuestions.map((q) => {
+    const details = answeredQuestions.map((q) => {
       const selected = new Set(answersByQid[q.id] ?? []);
-      const correctIds = new Set(
-        q.choices.filter((c: { isCorrect: any }) => c.isCorrect).map((c: { id: any }) => c.id)
-      );
+      const correctIds = new Set(q.choices.filter((c) => c.isCorrect).map((c) => c.id));
 
-      // exact match scoring
       const isCorrect =
         selected.size === correctIds.size &&
         [...selected].every((id) => correctIds.has(id));
@@ -231,117 +246,163 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     return { correct, total, details };
   }, [finished, quizQuestions, answersByQid]);
 
+  // =========================
+  // LAYOUT WRAPPER (sticky footer)
+  // =========================
+
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
         <Navbar />
-        <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
-          <div className="text-lg font-semibold">Ielādē testu…</div>
-          <div className="mt-2 text-sm text-cocoa/70">Lūdzu uzgaidi.</div>
-        </div>
-      </>
+        <main className="flex-1 grid place-items-center px-4">
+          <LoadingSpinner label="Ielādē testu…" />
+        </main>
+        <SiteFooter />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
         <Navbar />
-        <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
-          <div className="text-lg font-semibold">Kļūda</div>
-          <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-fog/70 bg-white p-4 text-sm text-red-700">
-            {error}
-          </pre>
-        </div>
-      </>
+
+        <main className="flex-1">
+          <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
+            <div className="text-lg font-semibold">Kļūda</div>
+            <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-fog/70 bg-white p-4 text-sm text-red-700">
+              {error}
+            </pre>
+          </div>
+        </main>
+
+        <SiteFooter />
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
       <Navbar />
 
-      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-fog/70 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="relative rounded-3xl border border-fog/70 bg-white p-5 shadow-sm">
+            {/* Stop button top-right */}
+            {!finished && (
+              <button
+                type="button"
+                onClick={stopAndShowResults}
+                className="
+                  absolute right-5 top-5
+                  inline-flex items-center gap-2
+                  rounded-2xl
+                  bg-red-500 px-4 py-2
+                  text-sm font-semibold text-white
+                  shadow-md
+                  transition
+                  hover:bg-red-600 hover:scale-[1.01] hover:cursor-pointer
+                  focus:outline-none focus:ring-2 focus:ring-red-300
+                "
+                aria-label="Pārtraukt un skatīt rezultātus"
+                title="Pārtraukt un skatīt rezultātus"
+              >
+                <XCircle className="h-5 w-5" />
+                <span className="hidden md:inline">Pārtraukt un skatīt rezultātus</span>
+              </button>
+            )}
+
+            {/* Header left */}
+            <div className="pr-16 md:pr-72">
+              <div className="text-xs text-cocoa/60">Tēma</div>
+              <h1 className="mt-1 text-lg font-semibold text-cocoa">{topic?.title}</h1>
+
+              <div className="mt-1 text-sm text-cocoa/70">
+                Jautājumi šajā tēmā: <b>{totalCount}</b>
+                <span className="mx-2">•</span>
+                Atbildēti: <b>{answeredCount}</b>
+                {quizQuestions.length ? (
+                  <>
+                    {" "}
+                    / <b>{quizQuestions.length}</b>
+                  </>
+                ) : null}
+              </div>
+
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="rounded-2xl border border-fog px-4 py-2 text-sm font-semibold text-cocoa hover:bg-fog/20"
+                className="mt-3 inline-flex text-sm font-semibold text-red-400 underline underline-offset-4 
+                hover:cursor-pointer hover:opacity-80"
               >
-                ← Back to homepage
+                Atpakaļ uz sākumu
               </button>
-
-              <div>
-                <div className="text-xs text-cocoa/60">Tēma</div>
-                <h1 className="mt-1 text-lg font-semibold text-cocoa">{topic?.title}</h1>
-                <div className="mt-1 text-sm text-cocoa/70">
-                  Jautājumi šajā tēmā: <b>{totalCount}</b>
-                </div>
-              </div>
             </div>
+
+            {finished && result ? (
+              <ResultsPanel
+                result={result}
+                onRestart={() => startQuiz(rawQuestions, limitMode)}
+                onTry50={() => startQuiz(rawQuestions, "50")}
+                onTryAll={() => startQuiz(rawQuestions, "all")}
+              />
+            ) : (
+              <>
+                <QuizProgress
+                  index={currentIndex}
+                  total={quizQuestions.length}
+                  answeredCount={answeredCount}
+                />
+
+                {current ? (
+                  <QuestionCard
+                    question={current}
+                    selectedIds={answersByQid[current.id] ?? []}
+                    onSelect={(choiceId: string) =>
+                      onSelect(current.id, choiceId, current.multiple)
+                    }
+                  />
+                ) : (
+                  <div className="mt-6 text-sm text-cocoa/70">Nav jautājumu šai tēmai.</div>
+                )}
+
+                <div className="mt-6 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    disabled={currentIndex === 0}
+                    className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
+                  >
+                    Atpakaļ
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={!canGoNext}
+                    className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
+                  >
+                    {currentIndex === quizQuestions.length - 1 ? "Pabeigt" : "Tālāk"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
-          {finished && result ? (
-            <ResultsPanel
-              result={result}
-              onRestart={() => startQuiz(rawQuestions, limitMode)}
-              onTry50={() => startQuiz(rawQuestions, "50")}
-              onTryAll={() => startQuiz(rawQuestions, "all")}
-            />
-          ) : (
-            <>
-              <QuizProgress
-                index={currentIndex}
-                total={quizQuestions.length}
-                answeredCount={Object.keys(answersByQid).length}
-              />
-
-              {current ? (
-                <QuestionCard
-                  question={current}
-                  selectedIds={answersByQid[current.id] ?? []}
-                  onSelect={(choiceId: string) => onSelect(current.id, choiceId, current.multiple)}
-                />
-              ) : (
-                <div className="mt-6 text-sm text-cocoa/70">Nav jautājumu šai tēmai.</div>
-              )}
-
-              <div className="mt-6 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  disabled={currentIndex === 0}
-                  className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa disabled:opacity-40"
-                >
-                  Atpakaļ
-                </button>
-
-                <button
-                  type="button"
-                  onClick={goNext}
-                  disabled={!canGoNext}
-                  className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
-                >
-                  {currentIndex === quizQuestions.length - 1 ? "Pabeigt" : "Tālāk"}
-                </button>
-              </div>
-            </>
-          )}
+          {/* Setup modal if topic has > 50 */}
+          <QuizSetupModal
+            open={showSetup}
+            totalQuestions={totalCount}
+            onClose={() => setShowSetup(false)}
+            onPick={(mode) => {
+              setLimitMode(mode);
+              startQuiz(rawQuestions, mode);
+            }}
+          />
         </div>
+      </main>
 
-        {/* Setup modal if topic has > 50 */}
-        <QuizSetupModal
-          open={showSetup}
-          totalQuestions={totalCount}
-          onClose={() => setShowSetup(false)}
-          onPick={(mode) => {
-            setLimitMode(mode);
-            startQuiz(rawQuestions, mode);
-          }}
-        />
-      </div>
-    </>
+      <SiteFooter />
+    </div>
   );
 }

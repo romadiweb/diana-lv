@@ -1,3 +1,4 @@
+import { XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function CourseModal({
@@ -100,7 +101,7 @@ export default function CourseModal({
       <div className="relative z-10 flex min-h-full items-end justify-center p-4 md:items-center">
         {/* MODAL BOX – klikšķis IEKŠĀ neaizver */}
         <div
-          className="relative w-full max-w-lg rounded-3xl border border-fog/70 bg-[#FBF8F5] p-6 shadow-xl"
+          className="relative w-full max-w-lg rounded-3xl bg-[#3F2021] p-6 shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close X */}
@@ -108,23 +109,23 @@ export default function CourseModal({
             type="button"
             onClick={onClose}
             aria-label="Aizvērt"
-            className="absolute right-3 top-3 rounded-xl px-3 py-2 text-sm font-semibold text-cocoa/70 hover:text-[#846B5A] hover:cursor-pointer hover:scale-105"
+            className="absolute right-3 top-3 rounded-xl px-3 py-2 text-sm font-semibold text-white/70 hover:text-[#846B5A] hover:cursor-pointer hover:scale-105"
           >
-            X
+            <XCircle className="h-5 w-5" />
           </button>
 
           {/* Title */}
-          <h3 className="text-center text-lg font-semibold text-cocoa">
+          <h3 className="text-center text-lg font-semibold text-white">
             Pieteikšanās kursiem
           </h3>
 
           {/* Content */}
           <div className="mt-4 text-center">
-            <p className="text-sm text-cocoa/80">
+            <p className="text-sm text-white/80">
               Teorētiskās nodarbības Avotu ielā 4, Liepājā.
             </p>
 
-            <p className="mt-2 text-sm text-cocoa/80">
+            <p className="mt-2 text-sm text-white/80">
               Par papildus informāciju saistībā ar norisi un pieteikšanos zvanīt:
               <br />
               <button
@@ -152,7 +153,7 @@ export default function CourseModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-fog bg-[#FBF8F5] px-6 py-3 text-sm font-semibold text-cocoa transition hover:text-[#846B5A] hover:cursor-pointer hover:scale-105"
+              className="rounded-2xl border border-fog bg-[#3F2021] px-6 py-3 text-sm font-semibold text-white transition hover:text-[#846B5A] hover:cursor-pointer hover:scale-105"
             >
               Sapratu
             </button>

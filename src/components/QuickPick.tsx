@@ -26,7 +26,7 @@ export default function QuickPick({
       <button
         type="button"
         onClick={onOpenAllTopics}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/15 transition"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-white px-4 py-3 text-sm font-semibold text-white hover:bg-white/15 transition hover:cursor-pointer no-scrollbar"
         title="Atvērt visas tēmas"
       >
         <ArrowDownCircle className="h-5 w-5" />
