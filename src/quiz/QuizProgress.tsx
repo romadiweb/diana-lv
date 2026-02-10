@@ -20,7 +20,7 @@ export default function QuizProgress({
         </div>
       </div>
 
-      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-fog/40">
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/10">
         <div className="h-full bg-[#3F2021]" style={{ width: `${pct}%` }} />
       </div>
     </div>

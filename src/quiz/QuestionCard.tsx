@@ -52,15 +52,16 @@ export default function QuestionCard({
               ].join(" ")}
             >
               <div className="flex items-start gap-3">
-                <div
-                  className={[
-                    "mt-[2px] h-4 w-4 rounded-full border",
-                    active ? "border-[#3F2021] bg-[#3F2021]" : "border-cocoa/30",
-                    question.multiple ? "rounded-md" : "rounded-full",
-                  ].join(" ")}
-                />
-                <div className="text-cocoa">{c.text}</div>
-              </div>
+  <div
+    className={[
+      "mt-1 size-4 shrink-0 flex-none border",
+      active ? "border-[#3F2021] bg-[#3F2021]" : "border-cocoa/30",
+      question.multiple ? "rounded-md" : "rounded-full",
+    ].join(" ")}
+  />
+  <div className="min-w-0 text-cocoa leading-relaxed">{c.text}</div>
+</div>
+
             </button>
           );
         })}

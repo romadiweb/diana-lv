@@ -37,7 +37,7 @@ export default function ResultsPanel({
           <button
             type="button"
             onClick={onRestart}
-            className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white"
+            className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white hover:cursor-pointer hover:scale-[1.02] transition"
           >
             Mēģināt vēlreiz
           </button>
@@ -45,7 +45,7 @@ export default function ResultsPanel({
           <button
             type="button"
             onClick={onTry50}
-            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa"
+            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa hover:cursor-pointer hover:scale-[1.02] transition"
           >
             Jauni 50
           </button>
@@ -53,7 +53,7 @@ export default function ResultsPanel({
           <button
             type="button"
             onClick={onTryAll}
-            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa"
+            className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa hover:cursor-pointer hover:scale-[1.02] transition"
           >
             Visi jautājumi
           </button>

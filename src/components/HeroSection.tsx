@@ -25,7 +25,7 @@ export default function HeroSection({
           </h1>
 
           <p className="mt-4 max-w-prose text-cocoa/80">
-            Izvēlies tēmu un trenējies ar testiem.
+            Mācību testi balstīti uz normatīvajiem aktiem un oficiālajām eksāmena tēmām.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">

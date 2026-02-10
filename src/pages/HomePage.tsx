@@ -90,8 +90,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-sand flex flex-col">
       <Navbar />
 
-      <main className="flex-1">
-        <section className="relative overflow-hidden" id="sakt">
+      <main className="flex-1 flex">
+        <section
+          className="relative overflow-hidden flex-1 flex items-center"
+          id="sakt"
+        >
           <div className="absolute inset-0">
             <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blush/70 blur-2xl" />
             <div className="absolute -right-24 top-10 h-72 w-72 rounded-full bg-fog/70 blur-2xl" />
@@ -99,6 +102,7 @@ export default function HomePage() {
 
           <div className="mx-auto w-full px-4 py-10 sm:px-6 lg:px-10 md:py-14">
             <div className="relative grid items-start gap-10 md:grid-cols-2">
+
               {/* LEFT */}
               <div>
                 <HeroSection
