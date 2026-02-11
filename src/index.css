@@ -30,9 +30,7 @@ body {
     color: #213547;
     background-color: #F7F7F7;
   }
-  a:hover {
-    color: #C2A180;
-  }
+
 }
 
 /* Hide scrollbar but keep scrolling */
@@ -44,3 +42,65 @@ body {
   -ms-overflow-style: none; /* IE & Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+.logo-marquee-viewport {
+  position: relative;
+  height: calc(var(--logoH) + 28px);
+}
+
+/* Hidden measurer row (same styling, not visible) */
+.logo-row-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 14px 0;
+  width: max-content;
+}
+
+.logo-track {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 14px 0;
+  width: max-content;
+  will-change: transform;
+  animation: logoScroll var(--duration) linear infinite;
+}
+
+.logo-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+  flex: 0 0 auto;
+}
+
+.logo-item:hover {
+  opacity: 1;
+}
+
+.logo-img {
+  height: var(--logoH);
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+@keyframes logoScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--distance)));
+  }
+}
+
+
+
+
