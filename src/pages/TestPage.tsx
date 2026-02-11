@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import Navbar from "../components/Navbar";
 import SiteFooter from "../components/SiteFooter";
 import QuizSetupModal from "../quiz/QuizSetupModal";
 import QuestionCard, { type QuizQuestion } from "../quiz/QuestionCard";
@@ -253,7 +252,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
-        <Navbar />
         <main className="flex-1 grid place-items-center px-4">
           <LoadingSpinner label="Ielādē testu…" />
         </main>
@@ -265,7 +263,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
-        <Navbar />
 
         <main className="flex-1">
           <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
@@ -283,7 +280,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
-      <Navbar />
 
       <main className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
