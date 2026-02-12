@@ -4,7 +4,6 @@ import HeroSection from "../components/HeroSection";
 import QuickPick from "../components/QuickPick";
 import TopicModal from "../components/TopicModal";
 import CourseModal from "../components/CourseModal";
-import SiteFooter from "../components/SiteFooter";
 import type { Topic } from "../components/TopicCard";
 import { supabase } from "../lib/supabase";
 
@@ -133,7 +132,6 @@ export default function HomePage() {
         </section>
       </main>
 
-      <SiteFooter />
 
       <TopicModal
         open={topicModalOpen}

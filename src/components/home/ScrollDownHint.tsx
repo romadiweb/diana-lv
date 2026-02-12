@@ -36,13 +36,13 @@ export default function ScrollDownHint({ targetId = "courses", fadeAfterPx = 60 
         "absolute bottom-6 left-1/2 -translate-x-1/2 z-30",
         "flex items-center justify-center",
         "h-12 w-12 rounded-full",
-        "bg-white/80 backdrop-blur border border-white/60 shadow-sm",
+        "bg-[#BA8448] backdrop-blur border border-[#BA8448]/60 shadow-sm",
         "transition-all duration-500",
-        "hover:bg-white animate-bounce",
+        "hover:bg-[#BA8448] hover:border-[#BA8448]/60 animate-bounce hover:cursor-pointer",
         hidden ? "opacity-0 pointer-events-none translate-y-2" : "opacity-100",
       ].join(" ")}
     >
-      <ChevronDown className="h-6 w-6 text-neutral-800" />
+      <ChevronDown className="h-6 w-6 text-white" />
     </button>
   );
 }

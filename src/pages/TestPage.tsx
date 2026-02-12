@@ -255,7 +255,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         <main className="flex-1 grid place-items-center px-4">
           <LoadingSpinner label="Ielādē testu…" />
         </main>
-        <SiteFooter />
       </div>
     );
   }
