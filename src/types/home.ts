@@ -13,7 +13,7 @@ export type CourseCard = {
   id: string;
   title: string;
   description?: string | null;
-  icon?: "antlers" | "binoculars" | "horn" | string | null;
+  icon?: string | null;
   href?: string | null;
   active: boolean;
   sort_order: number;
@@ -32,12 +32,14 @@ export type FaqItem = {
 
 export type Article = {
   id: string;
+  slug: string | null;
   title: string;
   excerpt: string | null;
   content: string | null;
-  published_at: string; // timestamptz
+  published_at: string;
   image_url: string | null;
-  href: string | null; // optional external or internal link
+  href: string | null;
   active: boolean;
   sort_order: number;
 };
+

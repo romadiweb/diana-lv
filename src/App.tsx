@@ -6,6 +6,10 @@ import TestPage from "./pages/TestPage";
 import InfoPage from "./pages/InfoPage";
 
 import ScrollToTop from "./components/ScrollToTop";
+import ParMums from "./pages/ParMums";
+import Kontakti from "./pages/Kontakti";
+import Jaunumi from "./pages/Jaunumi";
+import JaunumsDetail from "./pages/JaunumsDetail";
 
 export default function App() {
   return (
@@ -16,8 +20,12 @@ export default function App() {
         {/* Everything inside AppLayout will render Navbar + Outlet */}
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="/tests" element={<TestFrontPage />} />
-          <Route path="/tests/:topicSlug" element={<TestPage />} />
+          <Route path="/mednieku-tests" element={<TestFrontPage />} />
+          <Route path="/mednieku-tests/:topicSlug" element={<TestPage />} />
+          <Route path="/jaunumi" element={<Jaunumi />} />
+          <Route path="/jaunumi/:slug" element={<JaunumsDetail />} />
+          <Route path="/par-mums" element={<ParMums/>} />
+          <Route path="/kontakti" element={<Kontakti/>} />
           <Route path="/info" element={<InfoPage />} />
         </Route>
 

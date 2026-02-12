@@ -7,7 +7,7 @@ type Props = {
   items: Article[];
   title?: string;
   subtitle?: string;
-  backgroundImageUrl: string; // the forest background
+  backgroundImageUrl: string; 
 };
 
 export default function NewsSection({

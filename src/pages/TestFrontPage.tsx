@@ -81,7 +81,7 @@ export default function HomePage() {
     setTopicModalOpen(false);
 
     // go to test page
-    navigate(`/tests/${t.id}`);
+    navigate(`/mednieku-tests/${t.id}`);
   }
 
   return (
