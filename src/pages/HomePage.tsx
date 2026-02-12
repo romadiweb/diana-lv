@@ -132,6 +132,7 @@ export default function HomePage() {
       href: null,
       active: true,
       sort_order: 1,
+      slug: "raksts-1",
     },
     {
       id: "a2",
@@ -144,6 +145,7 @@ export default function HomePage() {
       href: null,
       active: true,
       sort_order: 2,
+      slug: "raksts-2",
     },
   ];
 
