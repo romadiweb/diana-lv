@@ -15,10 +15,10 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
   const nav = useMemo(
     () => [
       { to: "/", label: "Sākums" },
-      { to: "/tests", label: "Testi" },
       { to: "/noderigi", label: "Noderīgi" },
       { to: "/jaunumi", label: "Jaunumi" },
       { to: "/par-mums", label: "Par mums" },
+      { to: "/kontakti", label: "Kontakti" },
     ],
     []
   );
@@ -145,7 +145,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 className={`${linkBase} inline-flex items-center gap-2`}
               >
                 <span>Mednieku kursi</span>
-                <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
                 <span
                   className={[
                     underlineBase,
@@ -155,12 +155,36 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 />
               </button>
 
-              <div className="invisible absolute right-0 top-full mt-3 w-56 rounded-2xl border border-[#3F2021]/10 bg-white p-2 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100">
+              <div
+                className={[
+                  // positioning
+                  "absolute right-0 top-full z-50 w-64 mt-0",
+                  "rounded-2xl bg-white/90 backdrop-blur",
+                  "shadow-xl ring-1 ring-black/5",
+                  "p-2",
+
+                  // modern UI
+                  "rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur",
+
+                  // IMPORTANT: remove real gap; use hover-bridge instead
+                  "mt-0",
+
+                  // animation (closed -> open)
+                  "invisible opacity-0 translate-y-2 scale-95",
+                  "transition-all duration-200 ease-out origin-top-right",
+                  "group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100",
+
+                  // open state
+                  "group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100",
+
+                  "before:content-[''] before:absolute before:left-0 before:right-0 before:-top-3 before:h-3",
+                ].join(" ")}
+              >
                 <NavLink
-                  to="/kursi"
-                  className="block rounded-xl px-3 py-2 text-sm text-[#3F2021] hover:bg-[#3F2021]/10"
+                  to="/mednieku-tests"
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-[#3F2021] hover:bg-[#3F2021]/10 focus:bg-[#3F2021]/10 focus:outline-none"
                 >
-                  Kursu informācija
+                  Mednieku eksāmena tests
                 </NavLink>
               </div>
             </div>

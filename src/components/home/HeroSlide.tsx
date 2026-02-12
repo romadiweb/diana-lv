@@ -1,17 +1,38 @@
 import type { HeroSlide as HeroSlideType } from "../../types/home";
+import { useEffect, useState } from "react";
 
 type Props = {
   slide: HeroSlideType;
 };
 
 export default function HeroSlide({ slide }: Props) {
+  const [loaded, setLoaded] = useState(false);
+
+  // Preload the image as early as possible to reduce the "gray flash" on first paint.
+  useEffect(() => {
+    if (!slide?.image_url) return;
+    setLoaded(false);
+    const img = new Image();
+    img.src = slide.image_url;
+    img.decoding = "async";
+    img.onload = () => setLoaded(true);
+  }, [slide?.image_url]);
+
   return (
-    <div className="relative h-[520px] w-full sm:h-[620px]">
+    <div className="relative h-[520px] w-full bg-black sm:h-[620px]">
       {/* Background image */}
       <img
         src={slide.image_url}
         alt={slide.title}
-        className="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={[
+          "absolute inset-0 h-full w-full object-cover",
+          "transition-opacity duration-300",
+          loaded ? "opacity-100" : "opacity-0",
+        ].join(" ")}
         draggable={false}
       />
 
