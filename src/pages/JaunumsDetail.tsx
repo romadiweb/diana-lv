@@ -1,5 +1,6 @@
+import { ArrowLeft, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Calendar, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import PageHeader from "../layout/PageHeader";
 import { supabase } from "../lib/supabase";
 import type { Article } from "../types/home";
@@ -12,14 +13,13 @@ function formatDate(iso: string) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function getSlugFromPath() {
-  // Works if your route is /jaunumi/:slug even without react-router hooks
+function getParamFromPath() {
   const parts = window.location.pathname.split("/").filter(Boolean);
-  return parts[1] ? decodeURIComponent(parts[1]) : null; // ["jaunumi", "slug"]
+  return parts[1] ? decodeURIComponent(parts[1]) : null; // ["jaunumi", ":param"]
 }
 
 export default function JaunumsDetail() {
-  const slug = getSlugFromPath();
+  const param = getParamFromPath();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function JaunumsDetail() {
     let mounted = true;
 
     async function load() {
-      if (!slug) {
+      if (!param) {
         setNotFound(true);
         setLoading(false);
         return;
@@ -37,21 +37,39 @@ export default function JaunumsDetail() {
 
       setLoading(true);
 
-      const res = await supabase
+      // Try slug first
+      const bySlug = await supabase
         .from("home_articles")
         .select("*")
-        .eq("slug", slug)
+        .eq("slug", param)
         .eq("active", true)
         .maybeSingle();
 
       if (!mounted) return;
 
-      if (res.error || !res.data) {
+      if (!bySlug.error && bySlug.data) {
+        setArticle(bySlug.data as Article);
+        setNotFound(false);
+        setLoading(false);
+        return;
+      }
+
+      // If not found by slug, try id (works if your id is numeric or string)
+      const byId = await supabase
+        .from("home_articles")
+        .select("*")
+        .eq("id", param as any)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (!byId.error && byId.data) {
+        setArticle(byId.data as Article);
+        setNotFound(false);
+      } else {
         setNotFound(true);
         setArticle(null);
-      } else {
-        setArticle(res.data as Article);
-        setNotFound(false);
       }
 
       setLoading(false);
@@ -61,17 +79,13 @@ export default function JaunumsDetail() {
     return () => {
       mounted = false;
     };
-  }, [slug]);
+  }, [param]);
 
   return (
     <main>
       <PageHeader
         title={loading ? "Ielādē…" : notFound ? "Raksts nav atrasts" : article?.title ?? "Jaunums"}
-        subtitle={
-          notFound
-            ? "Pārbaudi saiti vai atgriezies uz jaunumu sarakstu."
-            : article?.excerpt ?? " "
-        }
+        subtitle={notFound ? "Pārbaudi saiti vai atgriezies uz jaunumu sarakstu." : article?.excerpt ?? " "}
         backgroundImageUrl={article?.image_url ?? "/jaunumi.jpg"}
         rightBadgeText="Jaunumi"
         crumbs={[
@@ -83,17 +97,15 @@ export default function JaunumsDetail() {
 
       <section className="bg-white">
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-          <a
-            href="/jaunumi"
+          <Link
+            to="/jaunumi"
             className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50 active:scale-[0.99]"
           >
             <ArrowLeft className="h-4 w-4" />
             Atpakaļ uz sarakstu
-          </a>
+          </Link>
 
-          {loading ? (
-            <div className="mt-8 text-neutral-600">Ielādē rakstu…</div>
-          ) : null}
+          {loading ? <div className="mt-8 text-neutral-600">Ielādē rakstu…</div> : null}
 
           {!loading && notFound ? (
             <div className="mt-8 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 text-neutral-700">
@@ -108,6 +120,7 @@ export default function JaunumsDetail() {
                   <Calendar className="h-4 w-4" />
                   {formatDate(article.published_at)}
                 </span>
+
                 {article.slug ? (
                   <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 font-semibold text-neutral-700">
                     #{article.slug}
@@ -126,9 +139,7 @@ export default function JaunumsDetail() {
                 </div>
               ) : null}
 
-              {/* Content */}
               <div className="prose prose-neutral mt-8 max-w-none">
-                {/* If your content is plain text */}
                 <div className="whitespace-pre-line text-neutral-800 leading-relaxed">
                   {article.content ?? article.excerpt ?? ""}
                 </div>

@@ -1,6 +1,6 @@
+import { ChevronDown, Facebook, Mail, Menu, Phone, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { ChevronDown, Facebook, Mail, Menu, Phone, X } from "lucide-react";
 
 type NavbarProps = {
   onOpenCourses?: () => void; // CTA action (button in top info bar)
@@ -8,6 +8,7 @@ type NavbarProps = {
 
 export default function Navbar({ onOpenCourses }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
 
   // Accent for underline + CTA button
   const ACCENT = "#c88f4c";
@@ -82,7 +83,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               type="button"
               onClick={onOpenCourses}
               className="ml-2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 hover:cursor-pointer"
-              style={{ backgroundColor: "#c88f4c" }}
+              style={{ backgroundColor: ACCENT }}
             >
               Mednieku eksāmena tests
             </button>
@@ -100,11 +101,15 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               to="/"
               aria-label="Doties uz sākumlapu"
               className="inline-flex items-center"
+              onClick={() => {
+                setMobileOpen(false);
+                setMobileCoursesOpen(false);
+              }}
             >
               <img
                 src="/diana-logo.png"
                 alt="Diana logo"
-                className="h-16 w-auto sm:h-20 lg:h-30 object-contain hover:scale-[1.02] transition-transform"
+                className="h-16 w-auto object-contain transition-transform hover:scale-[1.02] sm:h-20 lg:h-30"
               />
               <div className="leading-tight">
                 <p className="text-base font-semibold text-[#3F2021] sm:text-lg">
@@ -138,7 +143,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               </NavLink>
             ))}
 
-            {/* Dropdown (Kursi) */}
+            {/* Desktop Dropdown (hover) */}
             <div className="group relative">
               <button
                 type="button"
@@ -156,29 +161,10 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               </button>
 
               <div
-                className={[
-                  // positioning
-                  "absolute right-0 top-full z-50 w-64 mt-0",
-                  "rounded-2xl bg-white/90 backdrop-blur",
-                  "shadow-xl ring-1 ring-black/5",
-                  "p-2",
-
-                  // modern UI
-                  "rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur",
-
-                  // IMPORTANT: remove real gap; use hover-bridge instead
-                  "mt-0",
-
-                  // animation (closed -> open)
-                  "invisible opacity-0 translate-y-2 scale-95",
-                  "transition-all duration-200 ease-out origin-top-right",
-                  "group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100",
-
-                  // open state
-                  "group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100",
-
-                  "before:content-[''] before:absolute before:left-0 before:right-0 before:-top-3 before:h-3",
-                ].join(" ")}
+                className="absolute right-0 top-full z-50 mt-0 w-64 origin-top-right rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur
+                           invisible translate-y-2 scale-95 opacity-0 transition-all duration-200 ease-out
+                           group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100
+                           before:absolute before:left-0 before:right-0 before:-top-3 before:h-3 before:content-['']"
               >
                 <NavLink
                   to="/mednieku-tests"
@@ -193,7 +179,13 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
           {/* Mobile menu button */}
           <button
             type="button"
-            onClick={() => setMobileOpen((v) => !v)}
+            onClick={() => {
+              setMobileOpen((v) => {
+                const next = !v;
+                if (!next) setMobileCoursesOpen(false);
+                return next;
+              });
+            }}
             className="inline-flex items-center justify-center rounded-xl border border-[#3F2021]/20 bg-[#3F2021] p-2 text-[#FBF8F5] transition hover:bg-[#3F2021]/10 lg:hidden"
             aria-label={mobileOpen ? "Aizvērt izvēlni" : "Atvērt izvēlni"}
             aria-expanded={mobileOpen}
@@ -202,7 +194,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
           </button>
         </div>
 
-        {/* Mobile panel (NO CTA button here) */}
+        {/* Mobile panel */}
         {mobileOpen && (
           <div className="border-t border-[#3F2021]/10 bg-[#FBF8F5] lg:hidden">
             <div className="mx-auto flex w-full flex-col gap-1 px-4 py-3 sm:px-6">
@@ -210,7 +202,10 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setMobileCoursesOpen(false);
+                  }}
                   className={({ isActive }) =>
                     [
                       "rounded-xl px-3 py-2 text-sm font-semibold transition",
@@ -224,20 +219,45 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 </NavLink>
               ))}
 
-              <NavLink
-                to="/kursi"
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  [
-                    "mt-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
-                    isActive
-                      ? "bg-[#3F2021] text-[#FBF8F5]"
-                      : "text-[#3F2021] hover:bg-[#3F2021]/10",
-                  ].join(" ")
+              {/* Mobile dropdown: tap-to-open (works on touch) */}
+              <details
+                className="group mt-2 rounded-xl border border-[#3F2021]/10 bg-white/70 px-2 py-1"
+                open={mobileCoursesOpen}
+                onToggle={(e) =>
+                  setMobileCoursesOpen(
+                    (e.currentTarget as HTMLDetailsElement).open
+                  )
                 }
               >
-                Mednieku kursi
-              </NavLink>
+                <summary
+                  className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
+                  aria-expanded={mobileCoursesOpen}
+                >
+                  <span>Mednieku kursi</span>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+
+                <div className="pb-2 pt-1">
+
+                  <NavLink
+                    to="/mednieku-tests"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setMobileCoursesOpen(false);
+                    }}
+                    className={({ isActive }) =>
+                      [
+                        "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
+                        isActive
+                          ? "bg-[#3F2021] text-[#FBF8F5]"
+                          : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                      ].join(" ")
+                    }
+                  >
+                    Mednieku eksāmena tests
+                  </NavLink>
+                </div>
+              </details>
             </div>
           </div>
         )}

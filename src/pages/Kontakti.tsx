@@ -1,5 +1,5 @@
+import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import PageHeader from "../layout/PageHeader";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
 export default function Kontakti() {
   const address = "Avotu iela 4, Liepāja, Latvija";
@@ -101,7 +101,7 @@ export default function Kontakti() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-neutral-900">Darba laiks</div>
-                    <div className="text-sm text-neutral-700">P–Sv: 9:00–18:00</div>
+                    <div className="text-sm text-neutral-700">S–Sv: 11:00–18:00</div>
                     <div className="mt-1 text-xs text-neutral-600">
                       (Ja zvans netiek pacelts — atzvanīsim.)
                     </div>
