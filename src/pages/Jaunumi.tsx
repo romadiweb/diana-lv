@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import LoadingSpinner from "../components/LoadingSpinner";
 import PageHeader from "../layout/PageHeader";
 import { supabase } from "../lib/supabase";
 import type { Article } from "../types/home";
-import LoadingSpinner from "../components/LoadingSpinner";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -13,16 +14,13 @@ function formatDate(iso: string) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function slugFallback(a: Article) {
-  return (
-    a.slug ??
-    a.title
-      .toLowerCase()
-      .trim()
-      .replace(/[\s]+/g, "-")
-      .replace(/[^\p{L}\p{N}-]+/gu, "")
-      .slice(0, 70)
-  );
+function routeParamForArticle(a: Article) {
+  // Use REAL slug if present; otherwise fallback to id.
+  // This ensures JaunumsDetail can fetch it.
+  const slug = (a as any).slug;
+  if (typeof slug === "string" && slug.trim().length > 0) return slug.trim();
+  const id = (a as any).id;
+  return String(id ?? "");
 }
 
 export default function Jaunumi() {
@@ -35,10 +33,7 @@ export default function Jaunumi() {
     async function load() {
       setLoading(true);
 
-      const res = await supabase
-        .from("home_articles")
-        .select("*")
-        .eq("active", true);
+      const res = await supabase.from("home_articles").select("*").eq("active", true);
 
       if (!mounted) return;
 
@@ -67,17 +62,14 @@ export default function Jaunumi() {
         subtitle="Aktuālā informācija, jaunākie ieraksti un noderīgi raksti medniekiem."
         backgroundImageUrl="/jaunumi.jpg"
         rightBadgeText="Raksti • DIANA"
-        crumbs={[
-          { label: "Sākums", href: "/" },
-          { label: "Jaunumi" },
-        ]}
+        crumbs={[{ label: "Sākums", href: "/" }, { label: "Jaunumi" }]}
       />
 
       <section className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-22 sm:px-6 lg:px-8">
           {loading ? (
             <div className="mb-8 py-26 flex items-center justify-center gap-3 text-neutral-600">
-            <LoadingSpinner/>
+              <LoadingSpinner />
             </div>
           ) : null}
 
@@ -87,18 +79,19 @@ export default function Jaunumi() {
 
           <div className="mx-auto grid max-w-4xl gap-6">
             {list.map((a) => {
-              const slug = slugFallback(a);
+              const param = routeParamForArticle(a);
 
               return (
-                <a
-                  key={a.id}
-                  href={`/jaunumi/${encodeURIComponent(slug)}`}
+                <Link
+                  key={(a as any).id}
+                  to={`/jaunumi/${encodeURIComponent(param)}`}
                   className={[
                     "group block w-full",
                     "rounded-2xl border border-neutral-200 bg-white shadow-sm",
                     "transition hover:-translate-y-0.5 hover:shadow-lg",
                     "overflow-hidden",
                   ].join(" ")}
+                  aria-label={a.title}
                 >
                   <div className="flex flex-col gap-5 p-5 sm:flex-row">
                     {/* Image */}
@@ -124,9 +117,9 @@ export default function Jaunumi() {
                           {formatDate(a.published_at)}
                         </span>
 
-                        {/* “#” label (visual only) */}
+                        {/* label (visual only) */}
                         <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 font-semibold text-neutral-700">
-                          #{slug}
+                          #{param}
                         </span>
                       </div>
 
@@ -145,7 +138,7 @@ export default function Jaunumi() {
                       </div>
                     </div>
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>

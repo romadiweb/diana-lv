@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-import type { HeroSlide, CourseCard, FaqItem, Article } from "../types/home";
+import type { Article, CourseCard, FaqItem, HeroSlide } from "../types/home";
 
-import HeroSlider from "../components/home/HeroSlider";
-import ScrollDownHint from "../components/home/ScrollDownHint";
-import LogoBelt, { type BeltLogo } from "../components/home/LogoBelt";
 import CoursesGrid from "../components/home/CoursesGrid";
 import FaqSection from "../components/home/FaqSection";
+import HeroSlider from "../components/home/HeroSlider";
+import LogoBelt, { type BeltLogo } from "../components/home/LogoBelt";
 import NewsSection from "../components/home/NewsSection";
+import ScrollDownHint from "../components/home/ScrollDownHint";
 
 export default function HomePage() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
@@ -153,11 +153,11 @@ export default function HomePage() {
   // Logo belt (static, swipe on mobile)
   // -------------------------
   const logos: BeltLogo[] = [
-    { id: "p1", name: "Partner 1", href: "https://example.com", src: "/logos/partner1.png" },
-    { id: "p2", name: "Partner 2", href: "https://example.com", src: "/logos/partner2.png" },
-    { id: "p3", name: "Partner 3", href: "https://example.com", src: "/logos/partner3.png" },
-    { id: "p4", name: "Partner 4", href: "https://example.com", src: "/logos/partner4.png" },
-    { id: "p5", name: "Partner 5", href: "https://example.com", src: "/logos/partner5.png" },
+    { id: "p1", name: "Partner 1", href: "https://tikka-rifles.com", src: "/partners/tikka.png" },
+    { id: "p2", name: "Partner 2", href: "https://berettaaustralia.com.au", src: "/partners/beretta.png" },
+    { id: "p3", name: "Partner 3", href: "https://sako.global", src: "/partners/sako.png" },
+    { id: "p4", name: "Partner 4", href: "https://www.thermeyetec.com", src: "/partners/thermtec.png" },
+    { id: "p5", name: "Partner 5", href: "https://www.browning.eu", src: "/partners/browning.png" },
   ];
 
   const slidesToUse = slides.length ? slides : fallbackSlides;
