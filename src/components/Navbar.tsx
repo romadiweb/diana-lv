@@ -16,7 +16,6 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
   const nav = useMemo(
     () => [
       { to: "/", label: "Sākums" },
-      { to: "/noderigi", label: "Noderīgi" },
       { to: "/jaunumi", label: "Jaunumi" },
       { to: "/par-mums", label: "Par mums" },
       { to: "/kontakti", label: "Kontakti" },

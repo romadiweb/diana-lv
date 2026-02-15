@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,6 +17,19 @@ function formatDate(iso: string) {
 function getParamFromPath() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   return parts[1] ? decodeURIComponent(parts[1]) : null; // ["jaunumi", ":param"]
+}
+
+function looksLikeHtml(s: string) {
+  return /<\s*\w+[^>]*>/.test(s);
+}
+
+function toSafeHtml(raw: string) {
+  // Safe default sanitization for rich text stored in DB.
+  // Allows normal formatting tags, links, etc.
+  return DOMPurify.sanitize(raw, {
+    USE_PROFILES: { html: true },
+    ADD_ATTR: ["target", "rel"],
+  });
 }
 
 export default function JaunumsDetail() {
@@ -54,7 +68,7 @@ export default function JaunumsDetail() {
         return;
       }
 
-      // If not found by slug, try id (works if your id is numeric or string)
+      // If not found by slug, try id
       const byId = await supabase
         .from("home_articles")
         .select("*")
@@ -140,9 +154,28 @@ export default function JaunumsDetail() {
               ) : null}
 
               <div className="prose prose-neutral mt-8 max-w-none">
-                <div className="whitespace-pre-line text-neutral-800 leading-relaxed">
-                  {article.content ?? article.excerpt ?? ""}
-                </div>
+                {(() => {
+                  const raw = (article.content ?? article.excerpt ?? "").trim();
+                  if (!raw) return null;
+
+                  // If DB content includes HTML (<b>, <i>, <ul>, <a>...), render as HTML.
+                  // Otherwise preserve newlines as plain text.
+                  if (looksLikeHtml(raw)) {
+                    const safe = toSafeHtml(raw);
+                    return (
+                      <div
+                        className="article-content text-neutral-800 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: safe }}
+                      />
+                    );
+                  }
+
+                  return (
+                    <div className="whitespace-pre-line text-neutral-800 leading-relaxed">
+                      {raw}
+                    </div>
+                  );
+                })()}
               </div>
             </article>
           ) : null}
