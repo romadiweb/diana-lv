@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { XCircle } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import LoadingSpinner from "../components/LoadingSpinner";
 import SiteFooter from "../components/SiteFooter";
-import QuizSetupModal from "../quiz/QuizSetupModal";
+import { supabase } from "../lib/supabase";
 import QuestionCard, { type QuizQuestion } from "../quiz/QuestionCard";
 import QuizProgress from "../quiz/QuizProgress";
+import QuizSetupModal from "../quiz/QuizSetupModal";
 import ResultsPanel, { type QuizResult } from "../quiz/ResultsPanel";
 import { shuffleArray } from "../quiz/shuffle";
-import LoadingSpinner from "../components/LoadingSpinner";
 
 type TopicRow = {
   id: string;
@@ -43,6 +43,12 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // image preloading gate
+  const [preloading, setPreloading] = useState(false);
+  const [preloadLoaded, setPreloadLoaded] = useState(0);
+  const [preloadTotal, setPreloadTotal] = useState(0);
+  const preloadAbortRef = useRef<AbortController | null>(null);
+
   const [topic, setTopic] = useState<TopicRow | null>(null);
   const [rawQuestions, setRawQuestions] = useState<QuestionRow[]>([]);
 
@@ -58,7 +64,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   const totalCount = rawQuestions.length;
 
-  // Load topic + questions
+  // Load topic + questions (BUT don't build quiz until user chooses 50/all if needed)
   useEffect(() => {
     if (!slug) {
       setError("Missing topic slug. Route should be /tests/:topicSlug");
@@ -69,6 +75,20 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     const run = async () => {
       setLoading(true);
       setError(null);
+
+      // reset quiz + gating state when topic changes
+      setTopic(null);
+      setRawQuestions([]);
+      setShowSetup(false);
+      setQuizQuestions([]);
+      setCurrentIndex(0);
+      setAnswersByQid({});
+      setFinished(false);
+      setPreloading(false);
+      setPreloadLoaded(0);
+      setPreloadTotal(0);
+      preloadAbortRef.current?.abort();
+      preloadAbortRef.current = null;
 
       // 1) topic
       const { data: topicData, error: topicErr } = await supabase
@@ -130,31 +150,93 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         setShowSetup(true);
       } else {
         // auto start with all if <=50
-        startQuiz(normalized, "all");
+        void startQuiz(normalized, "all");
       }
     };
 
     run();
+
+    return () => {
+      preloadAbortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  const startQuiz = (source: QuestionRow[], mode: "50" | "all") => {
+  const collectImageUrls = (qs: QuestionRow[]) => {
+    const urls = new Set<string>();
+    for (const q of qs) {
+      if (q.image_url) urls.add(q.image_url);
+    }
+    return [...urls];
+  };
+
+  const preloadImages = async (urls: string[]) => {
+    if (!urls.length) return;
+
+    setPreloading(true);
+    setPreloadLoaded(0);
+    setPreloadTotal(urls.length);
+
+    const ctrl = new AbortController();
+    preloadAbortRef.current?.abort();
+    preloadAbortRef.current = ctrl;
+
+    let done = 0;
+    await Promise.all(
+      urls.map(
+        (src) =>
+          new Promise<void>((resolve) => {
+            if (ctrl.signal.aborted) return resolve();
+
+            const img = new Image();
+            const finish = () => {
+              done += 1;
+              setPreloadLoaded(done);
+              resolve();
+            };
+            img.onload = finish;
+            img.onerror = finish; // don't hang forever on broken urls
+            img.src = src;
+          })
+      )
+    );
+
+    if (!ctrl.signal.aborted) {
+      setPreloading(false);
+    }
+  };
+
+  const startQuiz = async (source: QuestionRow[], mode: "50" | "all") => {
     const picked =
       mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
 
-    const prepared: QuizQuestion[] = picked.map((q) => ({
-      id: q.id,
-      text: q.text,
-      multiple: !!q.multiple,
-      imageUrl: q.image_url ?? undefined,
-      imageAlt: q.image_alt ?? undefined,
-      explanation: q.explanation ?? undefined,
-      choices: shuffleArray(q.choices).map((c) => ({
-        id: c.id,
-        text: c.text,
-        isCorrect: c.is_correct,
-      })),
-    }));
+    // Preload question images BEFORE rendering the quiz
+    await preloadImages(collectImageUrls(picked));
+    if (preloadAbortRef.current?.signal.aborted) return;
+
+    const prepared: QuizQuestion[] = picked.map((q) => {
+  const base = {
+    id: q.id,
+    text: q.text,
+    multiple: !!q.multiple,
+    explanation: q.explanation ?? undefined,
+    choices: shuffleArray(q.choices).map((c) => ({
+      id: c.id,
+      text: c.text,
+      isCorrect: c.is_correct,
+    })),
+  };
+
+  // Provide BOTH camelCase and snake_case so QuestionCard can read either.
+  return {
+    ...base,
+    imageUrl: q.image_url ?? undefined,
+    imageAlt: q.image_alt ?? undefined,
+    image_url: q.image_url ?? undefined,
+    image_alt: q.image_alt ?? undefined,
+  } as unknown as QuizQuestion;
+});
+
 
     setQuizQuestions(prepared);
     setCurrentIndex(0);
@@ -263,7 +345,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
-
         <main className="flex-1">
           <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
             <div className="text-lg font-semibold">Kļūda</div>
@@ -280,12 +361,11 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
-
       <main className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="relative rounded-3xl border border-fog/70 bg-white p-5 shadow-sm">
             {/* Stop button top-right */}
-            {!finished && (
+            {!finished && !preloading && quizQuestions.length > 0 && (
               <button
                 type="button"
                 onClick={stopAndShowResults}
@@ -338,49 +418,68 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
             {finished && result ? (
               <ResultsPanel
                 result={result}
-                onRestart={() => startQuiz(rawQuestions, limitMode)}
-                onTry50={() => startQuiz(rawQuestions, "50")}
-                onTryAll={() => startQuiz(rawQuestions, "all")}
+                onRestart={() => void startQuiz(rawQuestions, limitMode)}
+                onTry50={() => void startQuiz(rawQuestions, "50")}
+                onTryAll={() => void startQuiz(rawQuestions, "all")}
               />
             ) : (
               <>
-                <QuizProgress
-                  index={currentIndex}
-                  total={quizQuestions.length}
-                  answeredCount={answeredCount}
-                />
-
-                {current ? (
-                  <QuestionCard
-                    question={current}
-                    selectedIds={answersByQid[current.id] ?? []}
-                    onSelect={(choiceId: string) =>
-                      onSelect(current.id, choiceId, current.multiple)
-                    }
-                  />
+                {preloading ? (
+                  <div className="mt-8 grid place-items-center">
+                    <LoadingSpinner
+                      label={
+                        preloadTotal
+                          ? `Ielādē attēlus… ${preloadLoaded}/${preloadTotal}`
+                          : "Ielādē attēlus…"
+                      }
+                    />
+                  </div>
+                ) : quizQuestions.length === 0 ? (
+                  // When topic has > 50, we intentionally wait for the user's choice.
+                  <div className="mt-8 text-sm text-cocoa/70">
+                    Izvēlies <b>50</b> vai <b>Visus</b> jautājumus, lai sāktu testu.
+                  </div>
                 ) : (
-                  <div className="mt-6 text-sm text-cocoa/70">Nav jautājumu šai tēmai.</div>
+                  <>
+                    <QuizProgress
+                      index={currentIndex}
+                      total={quizQuestions.length}
+                      answeredCount={answeredCount}
+                    />
+
+                    {current ? (
+                      <QuestionCard
+                        question={current}
+                        selectedIds={answersByQid[current.id] ?? []}
+                        onSelect={(choiceId: string) =>
+                          onSelect(current.id, choiceId, current.multiple)
+                        }
+                      />
+                    ) : (
+                      <div className="mt-6 text-sm text-cocoa/70">Nav jautājumu šai tēmai.</div>
+                    )}
+
+                    <div className="mt-6 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={currentIndex === 0}
+                        className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
+                      >
+                        Atpakaļ
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!canGoNext}
+                        className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
+                      >
+                        {currentIndex === quizQuestions.length - 1 ? "Pabeigt" : "Tālāk"}
+                      </button>
+                    </div>
+                  </>
                 )}
-
-                <div className="mt-6 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    disabled={currentIndex === 0}
-                    className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
-                  >
-                    Atpakaļ
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    disabled={!canGoNext}
-                    className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40 disabled:hover:cursor-not-allowed hover:cursor-pointer"
-                  >
-                    {currentIndex === quizQuestions.length - 1 ? "Pabeigt" : "Tālāk"}
-                  </button>
-                </div>
               </>
             )}
           </div>
@@ -392,7 +491,8 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
             onClose={() => setShowSetup(false)}
             onPick={(mode) => {
               setLimitMode(mode);
-              startQuiz(rawQuestions, mode);
+              setShowSetup(false); // close immediately so spinner/progress is visible
+              void startQuiz(rawQuestions, mode);
             }}
           />
         </div>
