@@ -71,6 +71,7 @@ export default function HomePage() {
       active: true,
       sort_order: 1,
       price_amount: 200,
+      slug: "mednieku-kursi-klatiene",
       price_currency: "€",
     },
     {
@@ -81,6 +82,7 @@ export default function HomePage() {
       active: true,
       sort_order: 2,
       price_amount: 200,
+      slug: "tiessaistes-mednieku-kursi-zoom",
       price_currency: "€",
     },
     {
@@ -92,6 +94,7 @@ export default function HomePage() {
       active: true,
       sort_order: 3,
       price_amount: 10,
+      slug: "mednieku-eksamena-tests",
       price_currency: "€",
     },
   ];
