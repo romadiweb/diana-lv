@@ -35,7 +35,7 @@ export default function FaqSection({ items }: Props) {
                 "px-6 py-7",
                 "text-center text-base font-semibold text-neutral-900",
                 "transition",
-                "hover:-translate-y-0.5 hover:shadow-lg",
+                "hover:-translate-y-0.5 hover:shadow-lg hover:cursor-pointer",
                 "active:translate-y-0 active:scale-[0.99]",
                 "focus:outline-none focus:ring-2 focus:ring-[#ff7a18]/40",
               ].join(" ")}

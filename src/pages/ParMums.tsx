@@ -53,7 +53,7 @@ export default function ParMums() {
                 <div className="mt-4 space-y-3 text-sm text-neutral-700">
                   <div className="flex items-center justify-between gap-4 rounded-xl bg-white p-4 border border-neutral-200">
                     <span>Darba laiks</span>
-                    <span className="font-semibold text-neutral-900">P–Sv 9:00–18:00</span>
+                    <span className="font-semibold text-neutral-900">S–Sv 11:00–18:00</span>
                   </div>
                   <div className="flex items-center justify-between gap-4 rounded-xl bg-white p-4 border border-neutral-200">
                     <span>Formāts</span>

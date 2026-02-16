@@ -70,24 +70,24 @@ export default function SiteFooter({
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 inline-block h-2 w-2 rounded-full bg-[#BA8448]" />
                   <div>
-                    <div className="font-semibold text-[#FBF8F5]">SIA “DIANA”</div>
-                    <div className="text-[#FBF8F5]/75">Reģ. Nr.: 000000000</div>
+                    <div className="font-semibold text-[#FBF8F5]">SIA “UP AUTO”</div>
+                    <div className="text-[#FBF8F5]/75">Reģ. Nr.: 42103041471</div>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 inline-block h-2 w-2 rounded-full bg-[#BA8448]" />
                   <div>
-                    <div className="font-semibold text-[#FBF8F5]">PVN </div>
-                    <div className="text-[#FBF8F5]/75">LV000000000</div>
+                    <div className="font-semibold text-[#FBF8F5]">Juridiskā adrese </div>
+                    <div className="text-[#FBF8F5]/75">Priežu iela 2-36, Grobiņa, LV-3430</div>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 inline-block h-2 w-2 rounded-full bg-[#BA8448]" />
                   <div>
-                    <div className="font-semibold text-[#FBF8F5]">Banka</div>
-                    <div className="text-[#FBF8F5]/75">IBAN: LV00BANK0000000000000</div>
+                    <div className="font-semibold text-[#FBF8F5]">Norēķinu konts</div>
+                    <div className="text-[#FBF8F5]/75">AS "Swedbank" LV91HABA0551016252281</div>
                   </div>
                 </div>
               </div>

@@ -17,6 +17,8 @@ export type CourseCard = {
   href?: string | null;
   active: boolean;
   sort_order: number;
+  slug: string;
+  content?: string | null;
 
   price_amount?: number | null;
   price_currency?: string | null;

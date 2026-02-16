@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { CourseCard } from "../../types/home";
 import Container from "../../layout/Container";
+import CourseInfoModal from "../home/CourseInfoModal";
 
 type Props = {
   items: CourseCard[];
@@ -16,6 +18,8 @@ function formatPrice(amount?: number | null, currency?: string | null) {
 }
 
 export default function CoursesGrid({ items }: Props) {
+  const navigate = useNavigate();
+
   const active = useMemo(
     () => [...items].filter((i) => i.active).sort((a, b) => a.sort_order - b.sort_order),
     [items]
@@ -23,6 +27,20 @@ export default function CoursesGrid({ items }: Props) {
 
   // track icon load failures so we can show fallback per-card
   const [brokenIcons, setBrokenIcons] = useState<Record<string, boolean>>({});
+
+  // modal state
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
+
+  function openInfo(courseId: string) {
+    setInfoCourseId(courseId);
+    setInfoOpen(true);
+  }
+
+  function closeInfo() {
+    setInfoOpen(false);
+    setInfoCourseId(null);
+  }
 
   return (
     <section className="bg-white py-16">
@@ -38,9 +56,8 @@ export default function CoursesGrid({ items }: Props) {
             const iconBroken = brokenIcons[c.id] === true;
 
             return (
-              <a
+              <div
                 key={c.id}
-                href={c.href ?? "#"}
                 className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-7 transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 {/* Top accent line */}
@@ -89,26 +106,36 @@ export default function CoursesGrid({ items }: Props) {
                   {c.title}
                 </div>
 
-                {/* Description */}
+                {/* Description (short preview) */}
                 <div className="mt-3 text-center text-sm leading-relaxed text-neutral-600">
                   {c.description}
                 </div>
 
                 {/* Push buttons to bottom */}
                 <div className="mt-auto pt-8 flex flex-col items-center">
-                  <span className="inline-flex rounded-full border border-[#3F2021] px-6 py-2 text-sm font-semibold text-[#3F2021] transition group-hover:bg-[#BA8448] group-hover:border-[#BA8448] group-hover:text-white">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pieteikties/${encodeURIComponent(c.slug)}`)}
+                    className="inline-flex rounded-full border border-[#3F2021] px-6 py-2 text-sm font-semibold text-[#3F2021] transition hover:cursor-pointer group-hover:bg-[#BA8448] group-hover:border-[#BA8448] group-hover:text-white"
+                  >
                     Pieteikties
-                  </span>
+                  </button>
 
-                  <div className="mt-3 text-sm font-semibold text-[#3F2021] underline-offset-4 group-hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => openInfo(c.id)}
+                    className="mt-3 text-sm font-semibold text-[#3F2021] underline-offset-4 hover:underline hover:cursor-pointer"
+                  >
                     Uzzināt vairāk
-                  </div>
+                  </button>
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
       </Container>
+
+      <CourseInfoModal open={infoOpen} courseId={infoCourseId} onClose={closeInfo} />
     </section>
   );
 }

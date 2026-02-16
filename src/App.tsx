@@ -10,6 +10,7 @@ import ParMums from "./pages/ParMums";
 import Kontakti from "./pages/Kontakti";
 import Jaunumi from "./pages/Jaunumi";
 import JaunumsDetail from "./pages/JaunumsDetail";
+import PieteiktiesPage from "./pages/PieteiktiesPage";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/jaunumi/:slug" element={<JaunumsDetail />} />
           <Route path="/par-mums" element={<ParMums/>} />
           <Route path="/kontakti" element={<Kontakti/>} />
+          <Route path="/pieteikties/:slug" element={<PieteiktiesPage />} />
           <Route path="/info" element={<InfoPage />} />
         </Route>
 
