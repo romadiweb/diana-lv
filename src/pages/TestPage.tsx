@@ -10,6 +10,10 @@ import QuizSetupModal from "../quiz/QuizSetupModal";
 import ResultsPanel, { type QuizResult } from "../quiz/ResultsPanel";
 import { shuffleArray } from "../quiz/shuffle";
 
+// ✅ Paywall
+import { useAccess } from "../paywall/useAccess";
+import PaywallModal from "../paywall/PaywallModal";
+
 type TopicRow = {
   id: string;
   slug: string;
@@ -40,6 +44,10 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   const slug = topicSlug ?? (params.topicSlug as string | undefined);
   const navigate = useNavigate();
 
+  // ✅ Paywall status
+  const { status } = useAccess();
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,8 +72,24 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   const totalCount = rawQuestions.length;
 
-  // Load topic + questions (BUT don't build quiz until user chooses 50/all if needed)
+  // ✅ If user opens direct link without access, open paywall
   useEffect(() => {
+    if (status.state === "allowed") {
+      setPaywallOpen(false);
+      return;
+    }
+
+    if (status.state === "logged_out" || status.state === "no_access") {
+      setPaywallOpen(true);
+      setLoading(false); // important: prevent "loading" UI loops
+    }
+  }, [status]);
+
+  // Load topic + questions (ONLY if allowed)
+  useEffect(() => {
+    // ✅ Hard gate: do nothing unless paid/allowed
+    if (status.state !== "allowed") return;
+
     if (!slug) {
       setError("Missing topic slug. Route should be /tests/:topicSlug");
       setLoading(false);
@@ -90,7 +114,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       preloadAbortRef.current?.abort();
       preloadAbortRef.current = null;
 
-      // 1) topic
+      // 1) topic (topics can be public; ok)
       const { data: topicData, error: topicErr } = await supabase
         .from("topics")
         .select("id, slug, title")
@@ -104,7 +128,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       }
       setTopic(topicData);
 
-      // 2) questions + choices
+      // 2) questions + choices (RLS must protect this)
       const { data: qData, error: qErr } = await supabase
         .from("questions")
         .select(
@@ -128,6 +152,14 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         .order("sort_order", { ascending: true });
 
       if (qErr) {
+        // If RLS blocks, you'll get "permission denied" — show paywall instead of generic error
+        const msg = qErr.message?.toLowerCase() ?? "";
+        if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
+          setPaywallOpen(true);
+          setLoading(false);
+          return;
+        }
+
         setError(qErr.message);
         setLoading(false);
         return;
@@ -160,7 +192,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       preloadAbortRef.current?.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, status.state]);
 
   const collectImageUrls = (qs: QuestionRow[]) => {
     const urls = new Set<string>();
@@ -195,7 +227,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
               resolve();
             };
             img.onload = finish;
-            img.onerror = finish; // don't hang forever on broken urls
+            img.onerror = finish;
             img.src = src;
           })
       )
@@ -207,36 +239,33 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   };
 
   const startQuiz = async (source: QuestionRow[], mode: "50" | "all") => {
-    const picked =
-      mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
+    const picked = mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
 
-    // Preload question images BEFORE rendering the quiz
     await preloadImages(collectImageUrls(picked));
     if (preloadAbortRef.current?.signal.aborted) return;
 
     const prepared: QuizQuestion[] = picked.map((q) => {
-  const base = {
-    id: q.id,
-    text: q.text,
-    multiple: !!q.multiple,
-    explanation: q.explanation ?? undefined,
-    choices: shuffleArray(q.choices).map((c) => ({
-      id: c.id,
-      text: c.text,
-      isCorrect: c.is_correct,
-    })),
-  };
+      const base = {
+        id: q.id,
+        text: q.text,
+        multiple: !!q.multiple,
+        explanation: q.explanation ?? undefined,
+        choices: shuffleArray(q.choices).map((c) => ({
+          id: c.id,
+          text: c.text,
+          isCorrect: c.is_correct,
+        })),
+      };
 
-  // Provide BOTH camelCase and snake_case so QuestionCard can read either.
-  return {
-    ...base,
-    imageUrl: q.image_url ?? undefined,
-    imageAlt: q.image_alt ?? undefined,
-    image_url: q.image_url ?? undefined,
-    image_alt: q.image_alt ?? undefined,
-  } as unknown as QuizQuestion;
-});
-
+      // Provide BOTH camelCase and snake_case so QuestionCard can read either.
+      return {
+        ...base,
+        imageUrl: q.image_url ?? undefined,
+        imageAlt: q.image_alt ?? undefined,
+        image_url: q.image_url ?? undefined,
+        image_alt: q.image_alt ?? undefined,
+      } as unknown as QuizQuestion;
+    });
 
     setQuizQuestions(prepared);
     setCurrentIndex(0);
@@ -255,7 +284,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         return { ...prev, [questionId]: [choiceId] };
       }
 
-      // toggle for multi
       const next = existing.includes(choiceId)
         ? existing.filter((x) => x !== choiceId)
         : [...existing, choiceId];
@@ -284,12 +312,10 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   const goPrev = () => setCurrentIndex((i) => Math.max(0, i - 1));
 
-  // Stop early -> show results for answered questions only
   const stopAndShowResults = () => {
     setFinished(true);
   };
 
-  // Results calculated ONLY for answered questions
   const result: QuizResult | null = useMemo(() => {
     if (!finished) return null;
 
@@ -308,8 +334,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       const correctIds = new Set(q.choices.filter((c) => c.isCorrect).map((c) => c.id));
 
       const isCorrect =
-        selected.size === correctIds.size &&
-        [...selected].every((id) => correctIds.has(id));
+        selected.size === correctIds.size && [...selected].every((id) => correctIds.has(id));
 
       if (isCorrect) correct += 1;
 
@@ -327,8 +352,53 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     return { correct, total, details };
   }, [finished, quizQuestions, answersByQid]);
 
+  // ✅ If not allowed: don't show empty quiz shell. Show paywall instead.
+  if (status.state !== "allowed") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
+        <main className="flex-1">
+          <div className="mx-auto max-w-3xl px-4 py-10 text-cocoa">
+            <div className="rounded-3xl border border-fog/70 bg-white p-6 shadow-sm">
+              <div className="text-lg font-semibold">Piekļuve testam</div>
+              <p className="mt-2 text-sm text-cocoa/70">
+                Lai atvērtu mednieku testus, nepieciešams ielogoties ar kontu, kuram ir aktīva piekļuve.
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaywallOpen(true)}
+                  className="rounded-2xl bg-[#3F2021] px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  Ielogoties
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa hover:bg-[#f3f3f3]"
+                >
+                  Atpakaļ uz sākumu
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <SiteFooter />
+
+        <PaywallModal
+          open={paywallOpen}
+          status={status}
+          onClose={() => setPaywallOpen(false)}
+          onSuccess={() => setPaywallOpen(false)}
+        />
+      </div>
+    );
+  }
+
   // =========================
-  // LAYOUT WRAPPER (sticky footer)
+  // NORMAL PAGE (allowed)
   // =========================
 
   if (loading) {
@@ -364,7 +434,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       <main className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="relative rounded-3xl border border-fog/70 bg-white p-5 shadow-sm">
-            {/* Stop button top-right */}
             {!finished && !preloading && quizQuestions.length > 0 && (
               <button
                 type="button"
@@ -388,7 +457,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
               </button>
             )}
 
-            {/* Header left */}
             <div className="pr-16 md:pr-72">
               <div className="text-xs text-cocoa/60">Tēma</div>
               <h1 className="mt-1 text-lg font-semibold text-cocoa">{topic?.title}</h1>
@@ -435,7 +503,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
                     />
                   </div>
                 ) : quizQuestions.length === 0 ? (
-                  // When topic has > 50, we intentionally wait for the user's choice.
                   <div className="mt-8 text-sm text-cocoa/70">
                     Izvēlies <b>50</b> vai <b>Visus</b> jautājumus, lai sāktu testu.
                   </div>
@@ -484,14 +551,13 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
             )}
           </div>
 
-          {/* Setup modal if topic has > 50 */}
           <QuizSetupModal
             open={showSetup}
             totalQuestions={totalCount}
             onClose={() => setShowSetup(false)}
             onPick={(mode) => {
               setLimitMode(mode);
-              setShowSetup(false); // close immediately so spinner/progress is visible
+              setShowSetup(false);
               void startQuiz(rawQuestions, mode);
             }}
           />
