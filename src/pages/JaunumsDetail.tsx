@@ -147,7 +147,7 @@ export default function JaunumsDetail() {
                   <img
                     src={article.image_url}
                     alt={article.title}
-                    className="h-[320px] w-full object-cover"
+                    className="h-auto w-full  max-h-[650px] object-cover"
                     draggable={false}
                   />
                 </div>

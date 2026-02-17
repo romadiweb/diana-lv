@@ -91,7 +91,7 @@ export default function PaywallModal({ open, status, onClose, onSuccess }: Props
             type="button"
             onClick={onClose}
             aria-label="Aizvērt"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900 active:scale-95"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 transition hover:bg-neutral-50 hover:cursor-pointer hover:text-neutral-900 active:scale-95"
           >
             <X className="h-5 w-5" />
           </button>
@@ -106,7 +106,7 @@ export default function PaywallModal({ open, status, onClose, onSuccess }: Props
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"
-                  placeholder="email@..."
+                  placeholder="e-pasts@piemers.lv"
                   autoComplete="email"
                 />
               </div>
@@ -132,7 +132,7 @@ export default function PaywallModal({ open, status, onClose, onSuccess }: Props
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-full bg-[#3F2021] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 hover:cursor-pointer disabled:opacity-50"
               >
                 {busy ? "Ielogojas..." : "Ielogoties"}
               </button>

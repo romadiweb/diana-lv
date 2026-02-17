@@ -8,6 +8,7 @@ import type { Topic } from "../components/TopicCard";
 import { supabase } from "../lib/supabase";
 import { useAccess } from "../paywall/useAccess";
 import PaywallModal from "../paywall/PaywallModal";
+import PageHeader from "../layout/PageHeader";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -96,7 +97,6 @@ export default function HomePage() {
   function onPaywallSuccess() {
     setPaywallOpen(false);
 
-    // If user clicked a topic before, continue where they left off
     if (pendingTopicSlug) {
       const slug = pendingTopicSlug;
       setPendingTopicSlug(null);
@@ -104,22 +104,37 @@ export default function HomePage() {
       return;
     }
 
-    // Otherwise open topic picker
     setTopicModalOpen(true);
   }
 
-  return (
-    <div className="min-h-screen bg-sand flex flex-col">
-      <main className="flex-1 flex">
-        <section className="relative overflow-hidden flex-1 flex items-center" id="sakt">
-          <div className="absolute inset-0">
-            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blush/70 blur-2xl" />
-            <div className="absolute -right-24 top-10 h-72 w-72 rounded-full bg-fog/70 blur-2xl" />
-          </div>
 
-          <div className="mx-auto w-full px-4 py-10 sm:px-6 lg:px-10 md:py-14">
-            <div className="relative grid items-start gap-10 md:grid-cols-2">
-              <div>
+  return (
+    <div className="min-h-screen bg-sand">
+      {/* HEADER */}
+      <PageHeader
+        title="Mednieku tests"
+        subtitle="Ātri pārbaudi zināšanas pēc tēmām vai sāc testu uzreiz. Izvēlies sev ērtāko veidu."
+        crumbs={[{ label: "Sākums", href: "/" }, { label: "Mednieku tests" }]}
+        rightBadgeText="Attīstība"
+        // backgroundImageUrl="/images/your-header.jpg"
+      />
+
+      {/* MAIN */}
+      <main className="relative">
+        {/* subtle background accents */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-28 -top-28 h-80 w-80 rounded-full bg-blush/60 blur-3xl" />
+          <div className="absolute -right-28 top-16 h-80 w-80 rounded-full bg-fog/60 blur-3xl" />
+          <div className="absolute left-1/2 top-[520px] h-72 w-72 -translate-x-1/2 rounded-full bg-white/30 blur-3xl" />
+        </div>
+
+        <section className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+
+          {/* Main grid card */}
+          <div className="rounded-3xl border border-black/5 bg-white/70 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.08)] backdrop-blur sm:p-7">
+            <div className="grid items-start gap-8 md:grid-cols-2">
+              {/* Left: hero */}
+              <div className="min-w-0">
                 <HeroSection
                   topicsCount={topics.length}
                   totalQuestionsCount={totalQuestionsCount}
@@ -127,29 +142,32 @@ export default function HomePage() {
                   onOpenCourses={() => setCourseModalOpen(true)}
                 />
 
-                {topicsLoading && <div className="mt-4 text-sm text-cocoa/70">Ielādē tēmas…</div>}
-                {topicsError && (
-                  <div className="mt-4 text-sm text-red-700">
-                    Neizdevās ielādēt tēmas: {topicsError}
-                  </div>
-                )}
+                {/* small helper text under hero */}
+                <div className="mt-4 rounded-2xl border border-black/5 bg-white/60 p-4 text-sm text-cocoa/75">
+                  Vari sākt ar <span className="font-semibold text-cocoa">ātro izvēli</span>,
+                  vai atvērt <span className="font-semibold text-cocoa">visas tēmas</span>.
+                </div>
               </div>
 
-              <div className="md:pt-2">
-                <QuickPick
-                  topics={topics}
-                  onPickTopic={pickTopic}
-                  onOpenAllTopics={() => {
-                    if (!ensureAccessOrOpenPaywall()) return;
-                    setTopicModalOpen(true);
-                  }}
-                />
+              {/* Right: quick pick */}
+              <div className="md:pt-1">
+                <div className="rounded-2xl border border-black/5 bg-white/60 p-4 sm:p-5">
+                  <QuickPick
+                    topics={topics}
+                    onPickTopic={pickTopic}
+                    onOpenAllTopics={() => {
+                      if (!ensureAccessOrOpenPaywall()) return;
+                      setTopicModalOpen(true);
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
       </main>
 
+      {/* MODALS */}
       <TopicModal
         open={topicModalOpen}
         topics={topics}

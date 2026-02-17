@@ -1,4 +1,4 @@
-import { ChevronDown, Facebook, Mail, Menu, Phone, X } from "lucide-react";
+import { ChevronDown, Facebook, Instagram, Mail, Menu, Phone, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
@@ -70,11 +70,20 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
             <a
               aria-label="Facebook"
               className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
-              href="#"
+              href="https://www.facebook.com/veikalsdiana/?locale=lv_LV"
               target="_blank"
               rel="noreferrer"
             >
               <Facebook className="h-4 w-4" />
+            </a>
+            <a
+              aria-label="Instagram"
+              className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
+              href="https://www.instagram.com/veikals_diana/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Instagram className="h-4 w-4" />
             </a>
 
             {/* CTA lives in the info row (desktop), NOT in the main header */}
@@ -84,7 +93,9 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               className="ml-2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 hover:cursor-pointer"
               style={{ backgroundColor: ACCENT }}
             >
+              <a href="/mednieku-tests">
               Mednieku eksāmena tests
+              </a>
             </button>
           </div>
         </div>

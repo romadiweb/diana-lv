@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "././layout/AppLayout"; 
 import HomePage from "./pages/HomePage";
 import TestFrontPage from "./pages/TestFrontPage";
@@ -11,6 +11,8 @@ import Kontakti from "./pages/Kontakti";
 import Jaunumi from "./pages/Jaunumi";
 import JaunumsDetail from "./pages/JaunumsDetail";
 import PieteiktiesPage from "./pages/PieteiktiesPage";
+import NotFound from "./pages/NotFound";
+import SikdatnuInformacija from "./pages/SikdatnuInformacija";
 
 export default function App() {
   return (
@@ -27,12 +29,14 @@ export default function App() {
           <Route path="/jaunumi/:slug" element={<JaunumsDetail />} />
           <Route path="/par-mums" element={<ParMums/>} />
           <Route path="/kontakti" element={<Kontakti/>} />
-          <Route path="/pieteikties/:slug" element={<PieteiktiesPage />} />
+          <Route path="/pieteikties" element={<PieteiktiesPage />} />
+          <Route path="/pieteikties/:courseSlug?" element={<PieteiktiesPage />} />
+          <Route path="/sikdatnu-informacija" element={<SikdatnuInformacija />} />
           <Route path="/info" element={<InfoPage />} />
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound/>} />
       </Routes>
     </BrowserRouter>
   );

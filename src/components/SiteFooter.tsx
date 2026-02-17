@@ -166,7 +166,7 @@ export default function SiteFooter({
             </button>
           ) : (
             <a
-              href="#cookie-settings"
+              href="/sikdatnu-informacija"
               className="inline-flex items-center justify-center px-4 py-2 font-semibold text-[#FBF8F5] transition hover:underline active:scale-95"
               title="Pieslēdz onOpenCookieSettings, lai atvērtu modali"
             >
