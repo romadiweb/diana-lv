@@ -45,13 +45,14 @@ export default function PieteiktiesPage() {
     referral: "",
   });
 
-  // CAPTCHA + submit state
   const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string;
   const [captchaToken, setCaptchaToken] = useState("");
   const [sending, setSending] = useState(false);
 
-  // First-load skeleton only (prevents flicker on back navigation)
-  const showSkeleton = useMemo(() => loadingCourses && courses.length === 0, [loadingCourses, courses.length]);
+  const showSkeleton = useMemo(
+    () => loadingCourses && courses.length === 0,
+    [loadingCourses, courses.length]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -60,7 +61,6 @@ export default function PieteiktiesPage() {
       setCoursesError(null);
       setLoadingCourses(true);
 
-      // IMPORTANT: fetch slug too (needed for /pieteikties/:courseSlug)
       const { data, error } = await supabase
         .from("home_course_cards")
         .select("id,slug,title,active,sort_order")
@@ -79,7 +79,11 @@ export default function PieteiktiesPage() {
       const items = (data ?? []) as Course[];
       setCourses(items);
 
-      // Preselect from route slug first, then legacy query, else keep previous if valid, else first
+      // Preselect priority:
+      // 1) route slug (/pieteikties/:courseSlug)
+      // 2) query (?course=<id>)
+      // 3) keep previous if still valid
+      // 4) first item
       const decodedSlug = courseSlug ? decodeURIComponent(courseSlug) : null;
       const matchedBySlug = decodedSlug ? items.find((c) => c.slug === decodedSlug) : null;
       const matchedById = courseIdFromQuery ? items.find((c) => c.id === courseIdFromQuery) : null;
@@ -137,12 +141,17 @@ export default function PieteiktiesPage() {
         },
       };
 
-      const { data, error } = await supabase.functions.invoke("send-application", {
-        body: payload,
+      const res = await fetch("/.netlify/functions/send-application", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error || "Neizdevās nosūtīt pieteikumu.");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Neizdevās nosūtīt pieteikumu.");
+      }
 
       alert("Pieteikums nosūtīts! Mēs sazināsimies drīzumā.");
 
@@ -196,7 +205,9 @@ export default function PieteiktiesPage() {
                         className="w-full appearance-none rounded-xl border border-black/10 bg-white px-4 py-3 pr-10 text-sm text-cocoa outline-none transition focus:border-black/20"
                       >
                         {loadingCourses && courses.length === 0 && <option>Notiek ielāde…</option>}
-                        {!loadingCourses && courses.length === 0 && <option value="">Nav pieejamu pakalpojumu</option>}
+                        {!loadingCourses && courses.length === 0 && (
+                          <option value="">Nav pieejamu pakalpojumu</option>
+                        )}
 
                         {courses.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -260,7 +271,7 @@ export default function PieteiktiesPage() {
                 />
               </Field>
 
-              <Field label="Pilsēta">
+              <Field label="Dzīves vieta">
                 <input
                   value={form.city}
                   onChange={(e) => setField("city", e.target.value)}
@@ -311,11 +322,11 @@ export default function PieteiktiesPage() {
                   {sending ? "Sūta..." : "Pieteikties"}
                 </button>
               </div>
-            </form>
 
-            <p className="mt-6 text-xs text-cocoa/55">
-              Iesniedzot formu, Jūs piekrītat, ka mēs apstrādājam iesniegto informāciju saziņas nolūkā.
-            </p>
+              <p className="text-xs text-cocoa/55">
+                Iesniedzot formu, Tu piekrīti, ka apstrādājam iesniegto informāciju saziņas nolūkā.
+              </p>
+            </form>
           </div>
         </div>
       </section>
