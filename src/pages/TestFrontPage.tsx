@@ -18,9 +18,6 @@ export default function HomePage() {
   const [pendingTopicSlug, setPendingTopicSlug] = useState<string | null>(null);
 
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [topicsLoading, setTopicsLoading] = useState(false);
-  const [topicsError, setTopicsError] = useState<string | null>(null);
-
   const [totalQuestionsCount, setTotalQuestionsCount] = useState<number | null>(null);
 
   const [topicModalOpen, setTopicModalOpen] = useState(false);
@@ -28,9 +25,6 @@ export default function HomePage() {
 
   useEffect(() => {
     const load = async () => {
-      setTopicsError(null);
-      setTopicsLoading(true);
-
       const { data: topicsData, error: topicsErr } = await supabase
         .from("topics")
         .select(
@@ -46,9 +40,10 @@ export default function HomePage() {
         .order("sort_order", { ascending: true });
 
       if (topicsErr) {
-        setTopicsError(topicsErr.message);
+        // Previously this went into topicsError state, but it was never used.
+        // Keeping behavior: clear topics and stop.
+        console.error("Failed to load topics:", topicsErr.message);
         setTopics([]);
-        setTopicsLoading(false);
         return;
       }
 
@@ -61,7 +56,6 @@ export default function HomePage() {
         })) ?? [];
 
       setTopics(mapped);
-      setTopicsLoading(false);
 
       const { count, error: countErr } = await supabase
         .from("questions")
@@ -107,7 +101,6 @@ export default function HomePage() {
     setTopicModalOpen(true);
   }
 
-
   return (
     <div className="min-h-screen bg-sand">
       {/* HEADER */}
@@ -129,7 +122,6 @@ export default function HomePage() {
         </div>
 
         <section className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-
           {/* Main grid card */}
           <div className="rounded-3xl border border-black/5 bg-white/70 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.08)] backdrop-blur sm:p-7">
             <div className="grid items-start gap-8 md:grid-cols-2">
@@ -144,8 +136,8 @@ export default function HomePage() {
 
                 {/* small helper text under hero */}
                 <div className="mt-4 rounded-2xl border border-black/5 bg-white/60 p-4 text-sm text-cocoa/75">
-                  Vari sākt ar <span className="font-semibold text-cocoa">ātro izvēli</span>,
-                  vai atvērt <span className="font-semibold text-cocoa">visas tēmas</span>.
+                  Vari sākt ar <span className="font-semibold text-cocoa">ātro izvēli</span>, vai atvērt{" "}
+                  <span className="font-semibold text-cocoa">visas tēmas</span>.
                 </div>
               </div>
 
