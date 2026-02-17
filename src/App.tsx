@@ -32,6 +32,7 @@ export default function App() {
           <Route path="/pieteikties" element={<PieteiktiesPage />} />
           <Route path="/pieteikties/:courseSlug?" element={<PieteiktiesPage />} />
           <Route path="/sikdatnu-informacija" element={<SikdatnuInformacija />} />
+          
           <Route path="/info" element={<InfoPage />} />
         </Route>
 
