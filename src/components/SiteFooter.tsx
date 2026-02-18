@@ -119,12 +119,12 @@ export default function SiteFooter({
                 </a>
 
                 <a
-                  href="mailto:gringogi@inbox.lv"
+                  href="mailto:info@dianahunt.lv"
                   className="group inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition hover:bg-white/10"
                 >
                   <Mail className="h-4 w-4 text-[#FBF8F5]/90" />
                   <span className="text-[#FBF8F5] group-hover:underline underline-offset-4">
-                    gringogi@inbox.lv
+                    info@dianahunt.lv
                   </span>
                 </a>
 

@@ -63,7 +63,7 @@ export default function Kontakti() {
                 </a>
 
                 <a
-                  href="mailto:gringogi@inbox.lv"
+                  href="mailto:info@dianahunt.lv"
                   className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FBF8F5] ring-1 ring-[#3F2021]/10">
@@ -72,7 +72,7 @@ export default function Kontakti() {
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-neutral-900">E-pasts</div>
                     <div className="text-sm text-neutral-700 group-hover:underline underline-offset-4">
-                      gringogi@inbox.lv
+                      info@dianahunt.lv
                     </div>
                   </div>
                 </a>

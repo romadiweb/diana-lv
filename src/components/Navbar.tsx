@@ -62,7 +62,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               href="mailto:gringogi@inbox.lv"
             >
               <Mail className="h-4 w-4" />
-              <span>gringogi@inbox.lv</span>
+              <span>info@dianahunt.lv</span>
             </a>
           </div>
 
