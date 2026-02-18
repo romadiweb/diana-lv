@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import SiteFooter from "../components/SiteFooter";
+import CookieFab from "../cookies/CookieFab";
 
 function ScrollToTop() {
   const location = useLocation();
@@ -16,6 +17,7 @@ function ScrollToTop() {
 export default function AppLayout() {
   return (
     <>
+      <CookieFab />
       <ScrollToTop />
       <Navbar />
       <Outlet />

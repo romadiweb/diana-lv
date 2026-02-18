@@ -21,24 +21,23 @@ export default function SikdatnuInformacija() {
         "Saglabā Jūsu izvēli par sīkdatņu izmantošanu, lai vietne zinātu, ko drīkst aktivizēt un ko nē.",
     },
     {
-      name: "SESSID / session",
+      name: "sb-xxxx-auth-token",
       category: "Nepieciešamās",
       lifetime: "sesija",
       purpose:
-        "Nodrošina sesijas darbību (piem., formas aizpilde, drošības pārbaudes) un palīdz vietnei darboties korekti.",
+        "Nodrošina lietotāja autentifikāciju un uztur aktīvu sesiju pēc pieslēgšanās.",
     },
     {
-      name: "_ga / _ga_*",
+      name: "tiks ievietota, tuvākajā laikā",
       category: "Statistikas",
       lifetime: "līdz 24 mēn.",
       purpose:
-        "Palīdz apkopot anonimizētus statistikas datus par apmeklējumu un lapas lietošanu (tikai ar Jūsu piekrišanu).",
+        "Palīdz apkopot statistikas datus par apmeklējumu un lapas lietošanu (tikai ar Jūsu piekrišanu).",
     },
   ];
 
   const necessary = cookies.filter((c) => c.category === "Nepieciešamās");
   const analytics = cookies.filter((c) => c.category === "Statistikas");
-  const marketing = cookies.filter((c) => c.category === "Mārketinga");
 
   return (
     <main className="min-h-screen bg-sand">
@@ -88,14 +87,6 @@ export default function SikdatnuInformacija() {
                       Tās tiek aktivizētas tikai ar Jūsu piekrišanu.
                     </p>
                   </div>
-
-                  <div className="rounded-2xl border border-black/5 bg-white/60 p-5 sm:col-span-2">
-                    <h3 className="font-semibold text-cocoa">Mārketinga</h3>
-                    <p className="mt-2 text-sm text-cocoa/70">
-                      Var tikt izmantotas reklāmas personalizēšanai vai kampaņu mērīšanai. Ja Jūs neesat devuši
-                      piekrišanu, tās netiek izmantotas.
-                    </p>
-                  </div>
                 </div>
               </div>
 
@@ -110,7 +101,6 @@ export default function SikdatnuInformacija() {
                 <div className="mt-5 space-y-6">
                   <CookieGroup title="Nepieciešamās sīkdatnes" rows={necessary} />
                   <CookieGroup title="Statistikas sīkdatnes" rows={analytics} />
-                  <CookieGroup title="Mārketinga sīkdatnes" rows={marketing} />
                 </div>
 
                 <p className="mt-4 text-sm text-cocoa/60">

@@ -69,12 +69,17 @@ export default async (req) => {
 
     const resend = new Resend(resendKey);
 
-    const subject = `Jauns pieteikums: ${esc(form.firstName)} ${esc(form.lastName)} (${esc(form.courseId)})`;
+    // Prefer the human-friendly service name in the email (fallback to ID)
+    const courseLabel = (form.courseName && String(form.courseName).trim())
+      ? String(form.courseName).trim()
+      : String(form.courseId);
+
+    const subject = `Jauns Diana pieteikums: ${esc(form.firstName)} ${esc(form.lastName)} (${esc(courseLabel)})`;
 
     const html = `
       <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height: 1.55">
         <h2>Jauns pieteikums</h2>
-        <p><b>Pakalpojums (ID):</b> ${esc(form.courseId)}</p>
+        <p><b>Pakalpojums:</b> ${esc(courseLabel)}</p>
         <p><b>Vārds:</b> ${esc(form.firstName)} ${esc(form.lastName)}</p>
         <p><b>E-pasts:</b> ${esc(form.email)}</p>
         <p><b>Tālrunis:</b> ${esc(form.phone)}</p>

@@ -116,6 +116,10 @@ export default function PieteiktiesPage() {
     return c?.title ?? "Pieteikšanās";
   }, [courses, form.courseId]);
 
+  const selectedCourse = useMemo(() => {
+    return courses.find((x) => x.id === form.courseId) ?? null;
+  }, [courses, form.courseId]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -130,6 +134,7 @@ export default function PieteiktiesPage() {
         captchaToken,
         form: {
           courseId: form.courseId,
+          courseName: selectedCourse?.title ?? "",
           firstName: form.firstName,
           lastName: form.lastName,
           email: form.email,
