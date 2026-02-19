@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import Navbar from "../components/Navbar";
-import SiteFooter from "../components/SiteFooter";
+import Navbar from "../components/global/Navbar";
+import SiteFooter from "../components/global/SiteFooter";
 import CookieFab from "../cookies/CookieFab";
 
 function ScrollToTop() {

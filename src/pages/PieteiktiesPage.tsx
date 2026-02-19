@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import PageHeader from "../layout/PageHeader";
 import { supabase } from "../lib/supabase";
-import CaptchaTurnstile from "../components/CaptchaTurnstile";
+import CaptchaTurnstile from "../components/global/CaptchaTurnstile";
 
 type Course = {
   id: string;

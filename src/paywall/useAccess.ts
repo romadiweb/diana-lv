@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type AccessRow = {
@@ -10,7 +10,7 @@ type AccessRow = {
 export type AccessStatus =
   | { state: "loading" }
   | { state: "logged_out" }
-  | { state: "no_access"; reason: "missing_row" | "inactive" | "expired"; expiresAt?: string | null }
+  | { state: "no_access"; reason: "missing_row" | "inactive" | "expired" | "blocked"; expiresAt?: string | null }
   | { state: "allowed"; expiresAt?: string | null; neverExpires: boolean };
 
 function isValidAccess(row: AccessRow | null): { ok: boolean; reason?: "missing_row" | "inactive" | "expired" } {
@@ -20,37 +20,50 @@ function isValidAccess(row: AccessRow | null): { ok: boolean; reason?: "missing_
   if (!row.expires_at) return { ok: false, reason: "expired" };
 
   const exp = new Date(row.expires_at).getTime();
-  const now = Date.now();
-  return exp > now ? { ok: true } : { ok: false, reason: "expired" };
+  return exp > Date.now() ? { ok: true } : { ok: false, reason: "expired" };
 }
 
 export function useAccess() {
   const [status, setStatus] = useState<AccessStatus>({ state: "loading" });
+  const reqIdRef = useRef(0);
 
   async function refresh() {
+    const reqId = ++reqIdRef.current;
     setStatus({ state: "loading" });
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user;
+    // 1) Wait for a session (prevents false-deny during initial load)
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+    if (reqId !== reqIdRef.current) return;
 
+    if (sessionErr) {
+      console.error("getSession error:", sessionErr);
+      setStatus({ state: "logged_out" });
+      return;
+    }
+
+    const user = sessionData.session?.user;
     if (!user) {
       setStatus({ state: "logged_out" });
       return;
     }
 
+    // 2) Read access row (avoid maybeSingle/single to prevent fragile errors)
     const { data, error } = await supabase
       .from("user_access")
       .select("active, never_expires, expires_at")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .limit(1);
+
+    if (reqId !== reqIdRef.current) return;
 
     if (error) {
-      // safest: treat as no access
-      setStatus({ state: "no_access", reason: "missing_row" });
+      console.error("user_access select error:", error);
+      // If RLS blocks the read, treat as no access (but not logged out)
+      setStatus({ state: "no_access", reason: "blocked" });
       return;
     }
 
-    const row = (data as AccessRow | null) ?? null;
+    const row = (data?.[0] as AccessRow | undefined) ?? null;
     const validity = isValidAccess(row);
 
     if (!validity.ok) {
@@ -69,6 +82,7 @@ export function useAccess() {
     refresh();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      // auth changed -> re-check access
       refresh();
     });
 

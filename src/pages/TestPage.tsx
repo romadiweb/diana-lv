@@ -1,8 +1,8 @@
 import { XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import LoadingSpinner from "../components/LoadingSpinner";
-import SiteFooter from "../components/SiteFooter";
+import LoadingSpinner from "../components/global/LoadingSpinner";
+import SiteFooter from "../components/global/SiteFooter";
 import { supabase } from "../lib/supabase";
 import QuestionCard, { type QuizQuestion } from "../quiz/QuestionCard";
 import QuizProgress from "../quiz/QuizProgress";

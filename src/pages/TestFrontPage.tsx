@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import HeroSection from "../components/HeroSection";
-import QuickPick from "../components/QuickPick";
-import TopicModal from "../components/TopicModal";
-import CourseModal from "../components/CourseModal";
-import type { Topic } from "../components/TopicCard";
+import HeroSection from "../components/global/HeroSection";
+import QuickPick from "../components/global/QuickPick";
+import TopicModal from "../components/global/TopicModal";
+import CourseModal from "../components/global/CourseModal";
+import type { Topic } from "../components/global/TopicCard";
 import { supabase } from "../lib/supabase";
 import { useAccess } from "../paywall/useAccess";
 import PaywallModal from "../paywall/PaywallModal";
@@ -69,6 +69,9 @@ export default function HomePage() {
   }, []);
 
   function ensureAccessOrOpenPaywall(nextTopicSlug?: string) {
+    // When auth/access is still loading, don't open paywall yet (prevents 'unclickable' feeling).
+    if (status.state === "loading") return false;
+
     if (status.state === "allowed") return true;
 
     if (nextTopicSlug) setPendingTopicSlug(nextTopicSlug);
@@ -111,6 +114,13 @@ export default function HomePage() {
         rightBadgeText="Attīstība"
         // backgroundImageUrl="/images/your-header.jpg"
       />
+
+      {status.state === "loading" && (
+        <div className="mx-auto mt-4 w-full max-w-5xl rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-cocoa/80">
+          Pārbaudu piekļuvi… lūdzu uzgaidi dažas sekundes.
+        </div>
+      )}
+
 
       {/* MAIN */}
       <main className="relative">

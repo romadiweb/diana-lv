@@ -143,7 +143,7 @@ export default function Kontakti() {
                   atzīmēt, kurš kurss interesē.
                 </p>
                 <a
-                  href="mailto:gringogi@inbox.lv?subject=Jaut%C4%81jums%20par%20kursiem"
+                  href="/pieteikties"
                   className="mt-4 inline-flex items-center justify-center rounded-full bg-[#BA8448] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
                 >
                   Rakstīt e-pastu

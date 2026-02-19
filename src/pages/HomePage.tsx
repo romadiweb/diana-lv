@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 import type { Article, CourseCard, FaqItem, HeroSlide } from "../types/home";
@@ -10,17 +10,56 @@ import LogoBelt, { type BeltLogo } from "../components/home/LogoBelt";
 import NewsSection from "../components/home/NewsSection";
 import ScrollDownHint from "../components/home/ScrollDownHint";
 
+type HomeCache = {
+  slides: HeroSlide[];
+  courses: CourseCard[];
+  faqs: FaqItem[];
+  articles: Article[];
+  savedAt: string;
+};
+
+const HOME_CACHE_KEY = "home_cache_v1";
+
+function readHomeCache(): HomeCache | null {
+  try {
+    const raw = sessionStorage.getItem(HOME_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as HomeCache;
+
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!Array.isArray(parsed.slides)) return null;
+    if (!Array.isArray(parsed.courses)) return null;
+    if (!Array.isArray(parsed.faqs)) return null;
+    if (!Array.isArray(parsed.articles)) return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeHomeCache(cache: HomeCache) {
+  try {
+    sessionStorage.setItem(HOME_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore (Safari private mode etc.)
+  }
+}
+
 export default function HomePage() {
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
-  const [courses, setCourses] = useState<CourseCard[]>([]);
-  const [faqs, setFaqs] = useState<FaqItem[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = useMemo(() => readHomeCache(), []);
+
+  const [slides, setSlides] = useState<HeroSlide[]>(() => cached?.slides ?? []);
+  const [courses, setCourses] = useState<CourseCard[]>(() => cached?.courses ?? []);
+  const [faqs, setFaqs] = useState<FaqItem[]>(() => cached?.faqs ?? []);
+  const [articles, setArticles] = useState<Article[]>(() => cached?.articles ?? []);
+  const [loading, setLoading] = useState(() => !cached);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
+      // IMPORTANT: do NOT hide sections while loading; keep previous content to avoid layout shift.
       setLoading(true);
 
       const [slidesRes, coursesRes, faqsRes, articlesRes] = await Promise.all([
@@ -32,10 +71,25 @@ export default function HomePage() {
 
       if (!mounted) return;
 
-      if (!slidesRes.error && slidesRes.data) setSlides(slidesRes.data as HeroSlide[]);
-      if (!coursesRes.error && coursesRes.data) setCourses(coursesRes.data as CourseCard[]);
-      if (!faqsRes.error && faqsRes.data) setFaqs(faqsRes.data as FaqItem[]);
-      if (!articlesRes.error && articlesRes.data) setArticles(articlesRes.data as Article[]);
+      const nextSlides = !slidesRes.error && slidesRes.data ? (slidesRes.data as HeroSlide[]) : slides;
+      const nextCourses =
+        !coursesRes.error && coursesRes.data ? (coursesRes.data as CourseCard[]) : courses;
+      const nextFaqs = !faqsRes.error && faqsRes.data ? (faqsRes.data as FaqItem[]) : faqs;
+      const nextArticles =
+        !articlesRes.error && articlesRes.data ? (articlesRes.data as Article[]) : articles;
+
+      setSlides(nextSlides);
+      setCourses(nextCourses);
+      setFaqs(nextFaqs);
+      setArticles(nextArticles);
+
+      writeHomeCache({
+        slides: nextSlides,
+        courses: nextCourses,
+        faqs: nextFaqs,
+        articles: nextArticles,
+        savedAt: new Date().toISOString(),
+      });
 
       setLoading(false);
     }
@@ -44,6 +98,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // -------------------------
@@ -157,7 +212,12 @@ export default function HomePage() {
   // -------------------------
   const logos: BeltLogo[] = [
     { id: "p1", name: "Partner 1", href: "https://tikka-rifles.com", src: "/partners/tikka.png" },
-    { id: "p2", name: "Partner 2", href: "https://berettaaustralia.com.au", src: "/partners/beretta.png" },
+    {
+      id: "p2",
+      name: "Partner 2",
+      href: "https://berettaaustralia.com.au",
+      src: "/partners/beretta.png",
+    },
     { id: "p3", name: "Partner 3", href: "https://sako.global", src: "/partners/sako.png" },
     { id: "p4", name: "Partner 4", href: "https://www.thermeyetec.com", src: "/partners/thermtec.png" },
     { id: "p5", name: "Partner 5", href: "https://www.browning.eu", src: "/partners/browning.png" },
@@ -181,7 +241,8 @@ export default function HomePage() {
 
       {/* Scroll target for arrow */}
       <div id="courses">
-        {!loading ? <CoursesGrid items={coursesToUse} /> : null}
+        {/* Always render to avoid vertical flicker on back navigation */}
+        <CoursesGrid items={coursesToUse} loading={loading} />
 
         {/* FAQ under courses */}
         <FaqSection items={faqsToUse} />

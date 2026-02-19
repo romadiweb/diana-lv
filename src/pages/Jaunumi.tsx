@@ -1,7 +1,7 @@
 import { Calendar } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import LoadingSpinner from "../components/LoadingSpinner";
+import LoadingSpinner from "../components/global/LoadingSpinner";
 import PageHeader from "../layout/PageHeader";
 import { supabase } from "../lib/supabase";
 import type { Article } from "../types/home";
@@ -23,21 +23,66 @@ function routeParamForArticle(a: Article) {
   return String(id ?? "");
 }
 
+/**
+ * Cache the list so navigating back/forward feels instant and doesn't reflow the page.
+ * sessionStorage is per-tab (good default), and we still refresh in the background.
+ */
+const CACHE_KEY = "jaunumi_cache_v1";
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+type CacheShape = {
+  items: Article[];
+  savedAt: number;
+};
+
+function readCache(): CacheShape | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheShape;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!Array.isArray(parsed.items)) return null;
+    if (typeof parsed.savedAt !== "number") return null;
+
+    const fresh = Date.now() - parsed.savedAt <= CACHE_TTL_MS;
+    return fresh ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(items: Article[]) {
+  try {
+    const payload: CacheShape = { items, savedAt: Date.now() };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore (e.g. storage disabled)
+  }
+}
+
 export default function Jaunumi() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = useMemo(() => readCache(), []);
+
+  const [articles, setArticles] = useState<Article[]>(() => cached?.items ?? []);
+  const [loading, setLoading] = useState(() => !cached);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
-      setLoading(true);
+      // If we already have cached data, keep UI stable while refreshing in the background.
+      if (articles.length === 0) setLoading(true);
 
       const res = await supabase.from("home_articles").select("*").eq("active", true);
 
       if (!mounted) return;
 
-      if (!res.error && res.data) setArticles(res.data as Article[]);
+      if (!res.error && res.data) {
+        const next = res.data as Article[];
+        setArticles(next);
+        writeCache(next);
+      }
+
       setLoading(false);
     }
 
@@ -45,6 +90,7 @@ export default function Jaunumi() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const list = useMemo(() => {
@@ -67,7 +113,7 @@ export default function Jaunumi() {
 
       <section className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-22 sm:px-6 lg:px-8">
-          {loading ? (
+          {loading && list.length === 0 ? (
             <div className="mb-8 py-26 flex items-center justify-center gap-3 text-neutral-600">
               <LoadingSpinner />
             </div>
@@ -115,11 +161,6 @@ export default function Jaunumi() {
                         <span className="inline-flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           {formatDate(a.published_at)}
-                        </span>
-
-                        {/* label (visual only) */}
-                        <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 font-semibold text-neutral-700">
-                          #{param}
                         </span>
                       </div>
 
