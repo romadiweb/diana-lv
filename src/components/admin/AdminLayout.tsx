@@ -42,7 +42,7 @@ export default function AdminLayout() {
         {/* Sidebar */}
         <aside className="hidden w-72 shrink-0 border-r border-black/10 bg-white/70 p-4 backdrop-blur md:block">
           <div className="rounded-2xl bg-white/70 p-4 border border-black/10">
-            <div className="text-lg font-semibold text-cocoa">Administrēšana</div>
+            <div className="text-lg font-semibold text-cocoa">Veikals Diāna</div>
             <div className="mt-1 text-sm text-cocoa/70">Satura pārvaldība</div>
           </div>
 
@@ -90,7 +90,7 @@ export default function AdminLayout() {
 
               <button
                 onClick={logout}
-                className="rounded-xl border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold text-cocoa hover:bg-white"
+                className="rounded-xl  bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 hover:cursor-pointer"
               >
                 Iziet
               </button>

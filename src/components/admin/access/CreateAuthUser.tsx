@@ -53,7 +53,7 @@ export default function CreateAuthUser({
         <div>
           <div className="text-lg font-semibold text-cocoa">1) Izveidot Auth lietotāju</div>
           <div className="mt-1 text-sm text-cocoa/70">
-            Šis izveido lietotāju Supabase Authentication (auth.users). Piekļuves piešķiršana ir nākamajā blokā.
+            Šis izveido lietotāju (Pircēja e-pasts un izveidojat viņam paroli) //Authentication (auth.users).<br/> Piekļuves piešķiršana ir nākamajā blokā.
           </div>
         </div>
 

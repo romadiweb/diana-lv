@@ -449,7 +449,7 @@ export default function UserAccessManager({ prefFill }: { prefFill?: CreatedAuth
               <button
                 onClick={saveEdit}
                 disabled={busy}
-                className="rounded-xl bg-cocoa px-4 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-60"
+                className="rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-black hover:opacity-95 disabled:opacity-60"
               >
                 Saglabāt
               </button>
