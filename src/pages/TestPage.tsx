@@ -60,7 +60,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   const [topic, setTopic] = useState<TopicRow | null>(null);
   const [rawQuestions, setRawQuestions] = useState<QuestionRow[]>([]);
 
-  // setup gate when > 50 questions
+  // setup gate when > 50 questions (NOT for eksamens)
   const [showSetup, setShowSetup] = useState(false);
   const [limitMode, setLimitMode] = useState<"50" | "all">("50");
 
@@ -72,6 +72,9 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   const totalCount = rawQuestions.length;
 
+  // ✅ Treat these as "access still resolving" so we don't flash paywall before spinner
+  const accessLoading = status.state === "loading";
+
   // ✅ If user opens direct link without access, open paywall
   useEffect(() => {
     if (status.state === "allowed") {
@@ -81,118 +84,8 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
     if (status.state === "logged_out" || status.state === "no_access") {
       setPaywallOpen(true);
-      setLoading(false); // important: prevent "loading" UI loops
     }
-  }, [status]);
-
-  // Load topic + questions (ONLY if allowed)
-  useEffect(() => {
-    // ✅ Hard gate: do nothing unless paid/allowed
-    if (status.state !== "allowed") return;
-
-    if (!slug) {
-      setError("Missing topic slug. Route should be /tests/:topicSlug");
-      setLoading(false);
-      return;
-    }
-
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-
-      // reset quiz + gating state when topic changes
-      setTopic(null);
-      setRawQuestions([]);
-      setShowSetup(false);
-      setQuizQuestions([]);
-      setCurrentIndex(0);
-      setAnswersByQid({});
-      setFinished(false);
-      setPreloading(false);
-      setPreloadLoaded(0);
-      setPreloadTotal(0);
-      preloadAbortRef.current?.abort();
-      preloadAbortRef.current = null;
-
-      // 1) topic (topics can be public; ok)
-      const { data: topicData, error: topicErr } = await supabase
-        .from("topics")
-        .select("id, slug, title")
-        .eq("slug", slug)
-        .single();
-
-      if (topicErr || !topicData) {
-        setError(`Topic not found for slug: ${slug}`);
-        setLoading(false);
-        return;
-      }
-      setTopic(topicData);
-
-      // 2) questions + choices (RLS must protect this)
-      const { data: qData, error: qErr } = await supabase
-        .from("questions")
-        .select(
-          `
-          id,
-          text,
-          multiple,
-          image_url,
-          image_alt,
-          explanation,
-          sort_order,
-          choices (
-            id,
-            text,
-            is_correct,
-            sort_order
-          )
-        `
-        )
-        .eq("topic_id", topicData.id)
-        .order("sort_order", { ascending: true });
-
-      if (qErr) {
-        // If RLS blocks, you'll get "permission denied" — show paywall instead of generic error
-        const msg = qErr.message?.toLowerCase() ?? "";
-        if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
-          setPaywallOpen(true);
-          setLoading(false);
-          return;
-        }
-
-        setError(qErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const normalized = (qData ?? []).map((q: any) => ({
-        ...q,
-        choices: (q.choices ?? []).slice().sort((a: ChoiceRow, b: ChoiceRow) => {
-          const ao = a.sort_order ?? 0;
-          const bo = b.sort_order ?? 0;
-          return ao - bo;
-        }),
-      })) as QuestionRow[];
-
-      setRawQuestions(normalized);
-      setLoading(false);
-
-      // gate if > 50
-      if (normalized.length > 50) {
-        setShowSetup(true);
-      } else {
-        // auto start with all if <=50
-        void startQuiz(normalized, "all");
-      }
-    };
-
-    run();
-
-    return () => {
-      preloadAbortRef.current?.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, status.state]);
+  }, [status.state]);
 
   const collectImageUrls = (qs: QuestionRow[]) => {
     const urls = new Set<string>();
@@ -274,6 +167,186 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     setShowSetup(false);
   };
 
+  // Load topic + questions (ONLY if allowed)
+  useEffect(() => {
+    // ✅ Hard gate: do nothing unless paid/allowed
+    if (status.state !== "allowed") return;
+
+    if (!slug) {
+      setError("Missing topic slug. Route should be /tests/:topicSlug");
+      setLoading(false);
+      return;
+    }
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+
+      // reset quiz + gating state when topic changes
+      setTopic(null);
+      setRawQuestions([]);
+      setShowSetup(false);
+      setQuizQuestions([]);
+      setCurrentIndex(0);
+      setAnswersByQid({});
+      setFinished(false);
+      setPreloading(false);
+      setPreloadLoaded(0);
+      setPreloadTotal(0);
+      preloadAbortRef.current?.abort();
+      preloadAbortRef.current = null;
+
+      // 1) topic (topics can be public; ok)
+      const { data: topicData, error: topicErr } = await supabase
+        .from("topics")
+        .select("id, slug, title")
+        .eq("slug", slug)
+        .single();
+
+      if (topicErr || !topicData) {
+        setError(`Topic not found for slug: ${slug}`);
+        setLoading(false);
+        return;
+      }
+      setTopic(topicData);
+
+      // 2) questions + choices
+      let qData: any[] | null = null;
+      let qErr: any = null;
+
+      if (topicData.slug === "eksamens") {
+        // ✅ Eksāmens: 60 random questions from ALL topics
+        const { data: idRows, error: idErr } = await supabase.rpc("pick_random_question_ids", {
+          lim: 60,
+        });
+
+        if (idErr) {
+          const msg = idErr.message?.toLowerCase() ?? "";
+          if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
+            setPaywallOpen(true);
+            setLoading(false);
+            return;
+          }
+          setError(idErr.message);
+          setLoading(false);
+          return;
+        }
+
+        const ids: string[] = (idRows ?? []).map((r: any) => r.id).filter(Boolean);
+
+        if (!ids.length) {
+          setError("Nav pieejamu jautājumu eksāmenam.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await supabase
+          .from("questions")
+          .select(
+            `
+            id,
+            text,
+            multiple,
+            image_url,
+            image_alt,
+            explanation,
+            sort_order,
+            choices (
+              id,
+              text,
+              is_correct,
+              sort_order
+            )
+          `
+          )
+          .in("id", ids);
+
+        qData = res.data;
+        qErr = res.error;
+
+        // ✅ Keep the random order returned by the RPC
+        if (qData) {
+          const order = new Map(ids.map((id, i) => [id, i]));
+          qData.sort((a: any, b: any) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        }
+      } else {
+        // ✅ Normal topic: questions by topic_id
+        const res = await supabase
+          .from("questions")
+          .select(
+            `
+            id,
+            text,
+            multiple,
+            image_url,
+            image_alt,
+            explanation,
+            sort_order,
+            choices (
+              id,
+              text,
+              is_correct,
+              sort_order
+            )
+          `
+          )
+          .eq("topic_id", topicData.id)
+          .order("sort_order", { ascending: true });
+
+        qData = res.data;
+        qErr = res.error;
+      }
+
+      if (qErr) {
+        // If RLS blocks, you'll get "permission denied" — show paywall instead of generic error
+        const msg = qErr.message?.toLowerCase() ?? "";
+        if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
+          setPaywallOpen(true);
+          setLoading(false);
+          return;
+        }
+
+        setError(qErr.message);
+        setLoading(false);
+        return;
+      }
+
+      const normalized = (qData ?? []).map((q: any) => ({
+        ...q,
+        choices: (q.choices ?? []).slice().sort((a: ChoiceRow, b: ChoiceRow) => {
+          const ao = a.sort_order ?? 0;
+          const bo = b.sort_order ?? 0;
+          return ao - bo;
+        }),
+      })) as QuestionRow[];
+
+      setRawQuestions(normalized);
+      setLoading(false);
+
+      // ✅ Eksāmens: always auto-start (no modal), even though >50
+      if (topicData.slug === "eksamens") {
+        setLimitMode("all");
+        void startQuiz(normalized, "all");
+        return;
+      }
+
+      // Normal gating if > 50
+      if (normalized.length > 50) {
+        setShowSetup(true);
+      } else {
+        // auto start with all if <=50
+        void startQuiz(normalized, "all");
+      }
+    };
+
+    run();
+
+    return () => {
+      preloadAbortRef.current?.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, status.state]);
+
   const current = quizQuestions[currentIndex];
 
   const onSelect = (questionId: string, choiceId: string, isMulti: boolean) => {
@@ -352,7 +425,19 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     return { correct, total, details };
   }, [finished, quizQuestions, answersByQid]);
 
-  // ✅ If not allowed: don't show empty quiz shell. Show paywall instead.
+  // ✅ 0) While access status is being resolved -> show spinner (prevents paywall flash)
+  if (accessLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
+        <main className="flex-1 grid place-items-center px-4">
+          <LoadingSpinner label="Pārbauda piekļuvi…" />
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  // ✅ 1) If not allowed -> show paywall
   if (status.state !== "allowed") {
     return (
       <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
@@ -361,7 +446,8 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
             <div className="rounded-3xl border border-fog/70 bg-white p-6 shadow-sm">
               <div className="text-lg font-semibold">Piekļuve testam</div>
               <p className="mt-2 text-sm text-cocoa/70">
-                Lai atvērtu mednieku testus, nepieciešams ielogoties ar kontu, kuram ir aktīva piekļuve.
+                Lai atvērtu mednieku testus, nepieciešams ielogoties ar kontu, kuram ir aktīva
+                piekļuve.
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">

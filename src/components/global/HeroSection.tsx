@@ -44,7 +44,7 @@ export default function HeroSection({
             className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-cocoa border border-[#DBDEE4]
                       hover:cursor-pointer hover:bg-white/80 active:scale-[0.99] transition"
           >
-            Pieteikties kursiem
+            Iegādāties piekļuvi
           </button>
 
           </div>

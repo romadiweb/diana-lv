@@ -23,10 +23,6 @@ export default function TopicCard({
           <p className="text-sm font-semibold text-cocoa">{topic.title}</p>
           <p className="mt-1 text-sm text-cocoa/70">{topic.description}</p>
         </div>
-
-        <div className="shrink-0 rounded-full bg-fog/40 px-3 py-1 text-xs text-cocoa/80">
-          {topic.questionCount ?? "—"} jaut.
-        </div>
       </div>
 
       <div className="mt-4 text-xs font-semibold text-cocoa/80 opacity-80 group-hover:opacity-100">
