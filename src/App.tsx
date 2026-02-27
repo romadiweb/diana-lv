@@ -25,10 +25,10 @@ import AdminHomeHero from "./components/admin/home/AdminHomeHero";
 import AdminHomeCourses from "./components/admin/home/AdminHomeCourses";
 import AdminHomeFaqs from "./components/admin/home/AdminHomeFaqs";
 import AdminHomeArticles from "./components/admin/home/AdminHomeArticles";
-import AdminTestTopics from "./components/admin/tests/AdminTestTopics";
-import AdminTestQuestions from "./components/admin/tests/AdminTestQuestions";
 import AdminTestChoices from "./components/admin/tests/AdminTestChoices";
 import AdminUserAccess from "./components/admin/access/AdminUserAccess";
+import AdminQuestions from "./components/admin/tests/AdminQuestions";
+import AdminTopics from "./components/admin/tests/AdminTopics";
 
 export default function App() {
   return (
@@ -63,8 +63,8 @@ export default function App() {
               <Route path="sakumlapa/buj" element={<AdminHomeFaqs />} />
               <Route path="sakumlapa/jaunumi" element={<AdminHomeArticles />} />
 
-              <Route path="testi/temas" element={<AdminTestTopics />} />
-              <Route path="testi/jautajumi" element={<AdminTestQuestions />} />
+              <Route path="testi/temas" element={<AdminTopics />} />
+              <Route path="testi/jautajumi" element={<AdminQuestions />} />
               <Route path="testi/atbildes" element={<AdminTestChoices />} />
 
               <Route path="piekļuve/lietotaji" element={<AdminUserAccess />} />

@@ -8,9 +8,8 @@ const NAV: NavGroup[] = [
   {
     title: "Sākumlapa",
     items: [
-      { label: "Hero slaidi", to: "/admin/sakumlapa/hero" },
       { label: "Kursu kartītes", to: "/admin/sakumlapa/kursi" },
-      { label: "BUJ", to: "/admin/sakumlapa/buj" },
+      { label: "Biežāk uzdotie jautājumi", to: "/admin/sakumlapa/buj" },
       { label: "Jaunumi / raksti", to: "/admin/sakumlapa/jaunumi" },
     ],
   },
@@ -19,7 +18,6 @@ const NAV: NavGroup[] = [
     items: [
       { label: "Tēmas", to: "/admin/testi/temas" },
       { label: "Jautājumi", to: "/admin/testi/jautajumi" },
-      { label: "Atbilžu varianti", to: "/admin/testi/atbildes" },
     ],
   },
   {
@@ -49,7 +47,7 @@ export default function AdminLayout() {
           <nav className="mt-4 space-y-4">
             {NAV.map((g) => (
               <div key={g.title}>
-                <div className="px-2 text-xs font-semibold tracking-wide text-cocoa/60 uppercase">
+                <div className="px-2 text-l font-semibold tracking-wide text-green-700 uppercase">
                   {g.title}
                 </div>
                 <div className="mt-2 space-y-1">
@@ -79,7 +77,7 @@ export default function AdminLayout() {
         {/* Main */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Topbar */}
-          <header className="sticky top-0 z-10 border-b border-black/10 bg-white/70 backdrop-blur">
+          <header className="sticky top-0 z-10 bg-white/70 backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="md:hidden text-lg font-semibold text-cocoa">Admin</div>
