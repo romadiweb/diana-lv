@@ -7,6 +7,7 @@ const QUICK: Quick[] = [
   { title: "Kursu kartītes", desc: "Pārvaldi kursu kartītes sākumlapā", to: "/admin/sakumlapa/kursi" },
   { title: "BUJ", desc: "Biežāk uzdotie jautājumi", to: "/admin/sakumlapa/buj" },
   { title: "Jaunumi / raksti", desc: "Rakstu pievienošana un rediģēšana", to: "/admin/sakumlapa/jaunumi" },
+  { title: "Preces", desc: "Veikala pārvaldība", to: "/admin/veikals/preces" },
   { title: "Tēmas", desc: "Testa tēmu pārvaldība", to: "/admin/testi/temas" },
   { title: "Jautājumi", desc: "Testa jautājumu pārvaldība", to: "/admin/testi/jautajumi" },
   { title: "Atbilžu varianti", desc: "Atbilžu variantu pārvaldība", to: "/admin/testi/atbildes" },

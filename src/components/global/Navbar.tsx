@@ -1,31 +1,54 @@
 import { ChevronDown, Facebook, Instagram, Mail, Menu, Phone, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 
 type NavbarProps = {
   onOpenCourses?: () => void; // CTA action (button in top info bar)
 };
 
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+};
+
 export default function Navbar({ onOpenCourses }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
+  const [mobileShopOpen, setMobileShopOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Accent for underline + CTA button
   const ACCENT = "#c88f4c";
 
+  // ✅ Regular links (no dropdown for mednieku)
   const nav = useMemo(
     () => [
       { to: "/", label: "Sākums" },
       { to: "/jaunumi", label: "Jaunumi" },
       { to: "/par-mums", label: "Par mums" },
       { to: "/kontakti", label: "Kontakti" },
+      { to: "/mednieku-tests", label: "Mednieku tests" },
+      // NOTE: "Veikals" is rendered separately as a dropdown+link, not here
     ],
     []
   );
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("categories")
+        .select("id,name,slug,sort_order")
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      setCategories((data || []) as any);
+    })();
+  }, []);
+
   /**
    * Desktop link style:
-   * - no text color change on hover/active
    * - underline animates left->right, retracts back left + fades out
    * - active stays underlined
    */
@@ -86,16 +109,14 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               <Instagram className="h-4 w-4" />
             </a>
 
-            {/* CTA lives in the info row (desktop), NOT in the main header */}
+            {/* CTA lives in the info row (desktop) */}
             <button
               type="button"
               onClick={onOpenCourses}
               className="ml-2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 hover:cursor-pointer"
               style={{ backgroundColor: ACCENT }}
             >
-              <a href="/mednieku-tests">
-              Mednieku eksāmena tests
-              </a>
+              <a href="/mednieku-tests">Mednieku eksāmena tests</a>
             </button>
           </div>
         </div>
@@ -103,7 +124,6 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
 
       {/* Main nav */}
       <div className="bg-[#FBF8F5]">
-        {/* Increased header height a bit so the bigger logo fits nicely */}
         <div className="mx-auto flex h-[72px] w-full items-center justify-between px-4 sm:px-6 lg:px-10">
           {/* Logo */}
           <div className="flex items-center">
@@ -113,7 +133,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               className="inline-flex items-center"
               onClick={() => {
                 setMobileOpen(false);
-                setMobileCoursesOpen(false);
+                setMobileShopOpen(false);
               }}
             >
               <img
@@ -122,12 +142,8 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 className="h-16 w-auto object-contain transition-transform hover:scale-[1.02] sm:h-20 lg:h-30"
               />
               <div className="leading-tight">
-                <p className="text-base font-semibold text-[#3F2021] sm:text-lg">
-                  DIANA
-                </p>
-                <p className="text-xs text-[#3F2021]/70 sm:text-sm">
-                  Mednieku kursi un veikals
-                </p>
+                <p className="text-base font-semibold text-[#3F2021] sm:text-lg">DIANA</p>
+                <p className="text-xs text-[#3F2021]/70 sm:text-sm">Mednieku kursi un veikals</p>
               </div>
             </Link>
           </div>
@@ -153,36 +169,55 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
               </NavLink>
             ))}
 
-            {/* Desktop Dropdown (hover) */}
+            {/* ✅ Veikals: clickable + dropdown categories */}
             <div className="group relative">
-              <button
-                type="button"
-                className={`${linkBase} inline-flex items-center gap-2`}
-              >
-                <span>Mednieku kursi</span>
-                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
-                <span
-                  className={[
-                    underlineBase,
-                    "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
-                  ].join(" ")}
-                  style={{ backgroundColor: ACCENT }}
-                />
-              </button>
+              <NavLink to="/veikals" className={`${linkBase} inline-flex items-center gap-2`}>
+                {({ isActive }) => (
+                  <>
+                    <span>Veikals</span>
+                    {categories.length > 0 && (
+                      <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+                    )}
+                    <span
+                      className={[
+                        underlineBase,
+                        isActive
+                          ? "scale-x-100 opacity-100"
+                          : "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
+                      ].join(" ")}
+                      style={{ backgroundColor: ACCENT }}
+                    />
+                  </>
+                )}
+              </NavLink>
 
-              <div
-                className="absolute right-0 top-full z-50 mt-0 w-64 origin-top-right rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur
-                           invisible translate-y-2 scale-95 opacity-0 transition-all duration-200 ease-out
-                           group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100
-                           before:absolute before:left-0 before:right-0 before:-top-3 before:h-3 before:content-['']"
-              >
-                <NavLink
-                  to="/mednieku-tests"
-                  className="block rounded-xl px-3 py-2 text-sm font-medium text-[#3F2021] hover:bg-[#3F2021]/10 focus:bg-[#3F2021]/10 focus:outline-none"
+              {categories.length > 0 && (
+                <div
+                  className="absolute right-0 top-full z-50 mt-0 w-72 origin-top-right rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur
+                             invisible translate-y-2 scale-95 opacity-0 transition-all duration-200 ease-out
+                             group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100
+                             before:absolute before:left-0 before:right-0 before:-top-3 before:h-3 before:content-['']"
                 >
-                  Mednieku eksāmena tests
-                </NavLink>
-              </div>
+                  <NavLink
+                    to="/veikals"
+                    className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
+                  >
+                    Visas preces
+                  </NavLink>
+
+                  <div className="my-1 h-px bg-black/5" />
+
+                  {categories.map((c) => (
+                    <NavLink
+                      key={c.id}
+                      to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
+                      className="block rounded-xl px-3 py-2 text-sm font-medium text-[#3F2021] hover:bg-[#3F2021]/10"
+                    >
+                      {c.name}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
             </div>
           </nav>
 
@@ -192,7 +227,7 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
             onClick={() => {
               setMobileOpen((v) => {
                 const next = !v;
-                if (!next) setMobileCoursesOpen(false);
+                if (!next) setMobileShopOpen(false);
                 return next;
               });
             }}
@@ -214,14 +249,12 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                   to={item.to}
                   onClick={() => {
                     setMobileOpen(false);
-                    setMobileCoursesOpen(false);
+                    setMobileShopOpen(false);
                   }}
                   className={({ isActive }) =>
                     [
                       "rounded-xl px-3 py-2 text-sm font-semibold transition",
-                      isActive
-                        ? "bg-[#3F2021] text-[#FBF8F5]"
-                        : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                      isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
                     ].join(" ")
                   }
                 >
@@ -229,43 +262,55 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                 </NavLink>
               ))}
 
-              {/* Mobile dropdown: tap-to-open (works on touch) */}
+              {/* ✅ Mobile: Veikals + categories */}
               <details
                 className="group mt-2 rounded-xl border border-[#3F2021]/10 bg-white/70 px-2 py-1"
-                open={mobileCoursesOpen}
-                onToggle={(e) =>
-                  setMobileCoursesOpen(
-                    (e.currentTarget as HTMLDetailsElement).open
-                  )
-                }
+                open={mobileShopOpen}
+                onToggle={(e) => setMobileShopOpen((e.currentTarget as HTMLDetailsElement).open)}
               >
                 <summary
                   className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
-                  aria-expanded={mobileCoursesOpen}
+                  aria-expanded={mobileShopOpen}
                 >
-                  <span>Mednieku kursi</span>
+                  <span>Veikals</span>
                   <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
                 </summary>
 
                 <div className="pb-2 pt-1">
-
                   <NavLink
-                    to="/mednieku-tests"
+                    to="/veikals"
                     onClick={() => {
                       setMobileOpen(false);
-                      setMobileCoursesOpen(false);
+                      setMobileShopOpen(false);
                     }}
                     className={({ isActive }) =>
                       [
                         "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
-                        isActive
-                          ? "bg-[#3F2021] text-[#FBF8F5]"
-                          : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                        isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
                       ].join(" ")
                     }
                   >
-                    Mednieku eksāmena tests
+                    Visas preces
                   </NavLink>
+
+                  {categories.map((c) => (
+                    <NavLink
+                      key={c.id}
+                      to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setMobileShopOpen(false);
+                      }}
+                      className={({ isActive }) =>
+                        [
+                          "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
+                          isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                        ].join(" ")
+                      }
+                    >
+                      {c.name}
+                    </NavLink>
+                  ))}
                 </div>
               </details>
             </div>

@@ -128,7 +128,7 @@ export default function AdminQuestions() {
 
         <div className="flex items-end gap-2">
           <button
-            className="rounded-xl bg-cocoa px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
             disabled={busy}
             onClick={() => load({ page: 1 })}
           >
@@ -541,7 +541,7 @@ function QuestionModal({
               Pareiza
             </label>
             <button
-              className="rounded-xl bg-cocoa px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
               onClick={addChoice}
               disabled={!canManageChoices || choicesBusy || !newChoiceText.trim()}
             >

@@ -30,6 +30,13 @@ import AdminUserAccess from "./components/admin/access/AdminUserAccess";
 import AdminQuestions from "./components/admin/tests/AdminQuestions";
 import AdminTopics from "./components/admin/tests/AdminTopics";
 
+// ✅ SHOP (add these files where you put pages/components)
+import ShopCatalogPage from "./pages/ShopCatalogPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+
+// ✅ ADMIN SHOP
+import AdminProductsPage from "./components/admin/home/AdminProductspage";
+
 export default function App() {
   return (
     <CookieConsentProvider>
@@ -41,16 +48,25 @@ export default function App() {
           {/* Public site */}
           <Route element={<AppLayout />}>
             <Route index element={<HomePage />} />
+
             <Route path="/mednieku-tests" element={<TestFrontPage />} />
             <Route path="/mednieku-tests/:topicSlug" element={<TestPage />} />
+
             <Route path="/jaunumi" element={<Jaunumi />} />
             <Route path="/jaunumi/:slug" element={<JaunumsDetail />} />
+
             <Route path="/par-mums" element={<ParMums />} />
             <Route path="/kontakti" element={<Kontakti />} />
+
             <Route path="/pieteikties" element={<PieteiktiesPage />} />
             <Route path="/pieteikties/:courseSlug?" element={<PieteiktiesPage />} />
+
             <Route path="/sikdatnu-informacija" element={<SikdatnuInformacija />} />
             <Route path="/info" element={<InfoPage />} />
+
+            {/* ✅ SHOP ROUTES */}
+            <Route path="/veikals" element={<ShopCatalogPage />} />
+            <Route path="/veikals/:slug" element={<ProductDetailPage />} />
           </Route>
 
           {/* Admin (no public navbar layout) */}
@@ -68,6 +84,9 @@ export default function App() {
               <Route path="testi/atbildes" element={<AdminTestChoices />} />
 
               <Route path="piekļuve/lietotaji" element={<AdminUserAccess />} />
+
+              {/* ✅ ADMIN SHOP ROUTE */}
+              <Route path="veikals/preces" element={<AdminProductsPage />} />
             </Route>
           </Route>
 

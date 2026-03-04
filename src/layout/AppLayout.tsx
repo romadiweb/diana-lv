@@ -16,12 +16,18 @@ function ScrollToTop() {
 
 export default function AppLayout() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <CookieFab />
       <ScrollToTop />
+
       <Navbar />
-      <Outlet />
+
+      {/* Saturs izstiepjas un "piespiež" footer uz leju */}
+      <main className="flex-1">
+        <Outlet />
+      </main>
+
       <SiteFooter />
-    </>
+    </div>
   );
 }
