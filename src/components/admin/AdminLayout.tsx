@@ -16,7 +16,7 @@ const NAV: NavGroup[] = [
   {
     title: "Veikals",
     items: [
-      { label: "Preces", to: "/admin/veikals" },
+      { label: "Preces", to: "/admin/veikals/preces" },
     ],
   },
   {
