@@ -650,7 +650,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         </div>
       </main>
 
-      <SiteFooter />
     </div>
   );
 }
