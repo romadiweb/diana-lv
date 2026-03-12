@@ -103,6 +103,7 @@ export default function HomePage() {
 
     setTopicModalOpen(true);
   }
+  
 
   return (
     <div className="min-h-screen bg-sand">
@@ -115,11 +116,7 @@ export default function HomePage() {
         // backgroundImageUrl="/images/your-header.jpg"
       />
 
-      {status.state === "loading" && (
-        <div className="mx-auto mt-4 w-full max-w-5xl rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-cocoa/80">
-          Pārbaudu piekļuvi… lūdzu uzgaidi dažas sekundes.
-        </div>
-      )}
+      {status.state === "loading" && null}
 
 
       {/* MAIN */}
@@ -157,10 +154,12 @@ export default function HomePage() {
                   <QuickPick
                     topics={topics}
                     onPickTopic={pickTopic}
+                    isLoading={status.state === "loading"}
                     onOpenAllTopics={() => {
                       if (!ensureAccessOrOpenPaywall()) return;
                       setTopicModalOpen(true);
                     }}
+                   
                   />
                 </div>
               </div>

@@ -47,11 +47,11 @@ export default function QuizSetupModal({
           type="button"
           onClick={() => {
             onClose();
-            navigate("/");
+            navigate("/mednieku-tests");
           }}
           className="mt-4 w-full rounded-2xl px-5 py-3 text-sm font-semibold text-cocoa/70 hover:bg-fog/30 border hover:cursor-pointer hover:underline"
         >
-          Atgriezties sākumā
+          Atgriezties izvēlnē
         </button>
       </div>
     </div>

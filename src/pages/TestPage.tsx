@@ -1,5 +1,5 @@
 import { XCircle } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LoadingSpinner from "../components/global/LoadingSpinner";
 import SiteFooter from "../components/global/SiteFooter";
@@ -38,6 +38,27 @@ type QuestionRow = {
   choices: ChoiceRow[];
 };
 
+type PersistedQuizState = {
+  version: 1;
+  topicSlug: string;
+  userId: string | null;
+  topic: TopicRow | null;
+  rawQuestions: QuestionRow[];
+  quizQuestions: QuizQuestion[];
+  currentIndex: number;
+  answersByQid: Record<string, string[]>;
+  finished: boolean;
+  limitMode: "50" | "all";
+  savedAt: number;
+};
+
+const QUIZ_STORAGE_PREFIX = "mednieku-tests-progress";
+const QUICK_RETRY_COUNT = 60;
+
+function getQuizStorageKey(topicSlug: string, userId: string | null) {
+  return `${QUIZ_STORAGE_PREFIX}:${topicSlug}:${userId ?? "guest"}`;
+}
+
 // If you don’t use react-router yet, you can pass topicSlug prop manually.
 export default function TestPage({ topicSlug }: { topicSlug?: string }) {
   const params = useParams();
@@ -74,6 +95,9 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
   // ✅ Treat these as "access still resolving" so we don't flash paywall before spinner
   const accessLoading = status.state === "loading";
+
+  const userId = status.state === "allowed" ? ((status as any)?.user?.id ?? null) : null;
+  const storageKey = slug ? getQuizStorageKey(slug, userId) : null;
 
   // ✅ If user opens direct link without access, open paywall
   useEffect(() => {
@@ -131,45 +155,186 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     }
   };
 
-  const startQuiz = async (source: QuestionRow[], mode: "50" | "all") => {
-    const picked = mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
+  const saveProgress = useCallback(() => {
+    if (!storageKey || !slug || status.state !== "allowed") return;
+    if (!topic) return;
+    if (!rawQuestions.length || !quizQuestions.length) return;
 
-    await preloadImages(collectImageUrls(picked));
-    if (preloadAbortRef.current?.signal.aborted) return;
+    const payload: PersistedQuizState = {
+      version: 1,
+      topicSlug: slug,
+      userId,
+      topic,
+      rawQuestions,
+      quizQuestions,
+      currentIndex,
+      answersByQid,
+      finished,
+      limitMode,
+      savedAt: Date.now(),
+    };
 
-    const prepared: QuizQuestion[] = picked.map((q) => {
-      const base = {
-        id: q.id,
-        text: q.text,
-        multiple: !!q.multiple,
-        explanation: q.explanation ?? undefined,
-        choices: shuffleArray(q.choices).map((c) => ({
-          id: c.id,
-          text: c.text,
-          isCorrect: c.is_correct,
-        })),
-      };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (err) {
+      console.error("Failed to save quiz progress:", err);
+    }
+  }, [
+    storageKey,
+    slug,
+    status.state,
+    topic,
+    rawQuestions,
+    quizQuestions,
+    currentIndex,
+    answersByQid,
+    finished,
+    limitMode,
+    userId,
+  ]);
 
-      // Provide BOTH camelCase and snake_case so QuestionCard can read either.
-      return {
-        ...base,
-        imageUrl: q.image_url ?? undefined,
-        imageAlt: q.image_alt ?? undefined,
-        image_url: q.image_url ?? undefined,
-        image_alt: q.image_alt ?? undefined,
-      } as unknown as QuizQuestion;
-    });
+  const clearSavedProgress = useCallback(() => {
+    if (!storageKey) return;
 
-    setQuizQuestions(prepared);
-    setCurrentIndex(0);
-    setAnswersByQid({});
-    setFinished(false);
-    setShowSetup(false);
-  };
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (err) {
+      console.error("Failed to clear quiz progress:", err);
+    }
+  }, [storageKey]);
+
+  const loadSavedProgress = useCallback((): PersistedQuizState | null => {
+    if (!storageKey || !slug) return null;
+
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as PersistedQuizState;
+
+      if (
+        !parsed ||
+        parsed.version !== 1 ||
+        parsed.topicSlug !== slug ||
+        parsed.userId !== userId
+      ) {
+        return null;
+      }
+
+      return parsed;
+    } catch (err) {
+      console.error("Failed to load quiz progress:", err);
+      return null;
+    }
+  }, [storageKey, slug, userId]);
+
+  useEffect(() => {
+    saveProgress();
+  }, [saveProgress]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveProgress();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      saveProgress();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [saveProgress]);
+
+  const startQuiz = useCallback(
+    async (source: QuestionRow[], mode: "50" | "all") => {
+      clearSavedProgress();
+
+      const picked = mode === "50" ? shuffleArray(source).slice(0, 50) : shuffleArray(source);
+
+      await preloadImages(collectImageUrls(picked));
+      if (preloadAbortRef.current?.signal.aborted) return;
+
+      const prepared: QuizQuestion[] = picked.map((q) => {
+        const base = {
+          id: q.id,
+          text: q.text,
+          multiple: !!q.multiple,
+          explanation: q.explanation ?? undefined,
+          choices: shuffleArray(q.choices).map((c) => ({
+            id: c.id,
+            text: c.text,
+            isCorrect: c.is_correct,
+          })),
+        };
+
+        // Provide BOTH camelCase and snake_case so QuestionCard can read either.
+        return {
+          ...base,
+          imageUrl: q.image_url ?? undefined,
+          imageAlt: q.image_alt ?? undefined,
+          image_url: q.image_url ?? undefined,
+          image_alt: q.image_alt ?? undefined,
+        } as unknown as QuizQuestion;
+      });
+
+      setQuizQuestions(prepared);
+      setCurrentIndex(0);
+      setAnswersByQid({});
+      setFinished(false);
+      setShowSetup(false);
+    },
+    [clearSavedProgress]
+  );
+
+  const startQuizWithCount = useCallback(
+    async (source: QuestionRow[], count: number) => {
+      clearSavedProgress();
+
+      const picked = shuffleArray(source).slice(0, count);
+
+      await preloadImages(collectImageUrls(picked));
+      if (preloadAbortRef.current?.signal.aborted) return;
+
+      const prepared: QuizQuestion[] = picked.map((q) => {
+        const base = {
+          id: q.id,
+          text: q.text,
+          multiple: !!q.multiple,
+          explanation: q.explanation ?? undefined,
+          choices: shuffleArray(q.choices).map((c) => ({
+            id: c.id,
+            text: c.text,
+            isCorrect: c.is_correct,
+          })),
+        };
+
+        return {
+          ...base,
+          imageUrl: q.image_url ?? undefined,
+          imageAlt: q.image_alt ?? undefined,
+          image_url: q.image_url ?? undefined,
+          image_alt: q.image_alt ?? undefined,
+        } as unknown as QuizQuestion;
+      });
+
+      setQuizQuestions(prepared);
+      setCurrentIndex(0);
+      setAnswersByQid({});
+      setFinished(false);
+      setShowSetup(false);
+    },
+    [clearSavedProgress]
+  );
 
   // Load topic + questions (ONLY if allowed)
   useEffect(() => {
-    // ✅ Hard gate: do nothing unless paid/allowed
     if (status.state !== "allowed") return;
 
     if (!slug) {
@@ -196,7 +361,7 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       preloadAbortRef.current?.abort();
       preloadAbortRef.current = null;
 
-      // 1) topic (topics can be public; ok)
+      // 1) topic
       const { data: topicData, error: topicErr } = await supabase
         .from("topics")
         .select("id, slug, title")
@@ -298,7 +463,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       }
 
       if (qErr) {
-        // If RLS blocks, you'll get "permission denied" — show paywall instead of generic error
         const msg = qErr.message?.toLowerCase() ?? "";
         if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
           setPaywallOpen(true);
@@ -321,6 +485,31 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       })) as QuestionRow[];
 
       setRawQuestions(normalized);
+
+      const saved = loadSavedProgress();
+
+      if (
+        saved &&
+        saved.topicSlug === topicData.slug &&
+        Array.isArray(saved.rawQuestions) &&
+        Array.isArray(saved.quizQuestions) &&
+        saved.rawQuestions.length > 0 &&
+        saved.quizQuestions.length > 0
+      ) {
+        setTopic(saved.topic ?? topicData);
+        setRawQuestions(saved.rawQuestions);
+        setQuizQuestions(saved.quizQuestions);
+        setCurrentIndex(
+          Math.min(saved.currentIndex ?? 0, Math.max(0, saved.quizQuestions.length - 1))
+        );
+        setAnswersByQid(saved.answersByQid ?? {});
+        setFinished(!!saved.finished);
+        setLimitMode(saved.limitMode ?? "all");
+        setShowSetup(false);
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
 
       // ✅ Eksāmens: always auto-start (no modal), even though >50
@@ -339,13 +528,12 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
       }
     };
 
-    run();
+    void run();
 
     return () => {
       preloadAbortRef.current?.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, status.state]);
+  }, [slug, status.state, loadSavedProgress, startQuiz]);
 
   const current = quizQuestions[currentIndex];
 
@@ -425,14 +613,13 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     return { correct, total, details };
   }, [finished, quizQuestions, answersByQid]);
 
-  // ✅ 0) While access status is being resolved -> show spinner (prevents paywall flash)
+  // ✅ 0) While access status is being resolved -> show spinner
   if (accessLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
         <main className="flex-1 grid place-items-center px-4">
           <LoadingSpinner label="Pārbauda piekļuvi…" />
         </main>
-        <SiteFooter />
       </div>
     );
   }
@@ -461,17 +648,15 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/mednieku-tests")}
                   className="rounded-2xl border border-fog px-5 py-3 text-sm font-semibold text-cocoa hover:bg-[#f3f3f3]"
                 >
-                  Atpakaļ uz sākumu
+                  Atpakaļ uz izvēlni
                 </button>
               </div>
             </div>
           </div>
         </main>
-
-        <SiteFooter />
 
         <PaywallModal
           open={paywallOpen}
@@ -493,7 +678,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
         <main className="flex-1 grid place-items-center px-4">
           <LoadingSpinner label="Ielādē testu…" />
         </main>
-        <SiteFooter />
       </div>
     );
   }
@@ -561,20 +745,28 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
 
               <button
                 type="button"
-                onClick={() => navigate("/")}
-                className="mt-3 inline-flex text-sm font-semibold text-red-400 underline underline-offset-4 
-                hover:cursor-pointer hover:opacity-80"
+                onClick={() => navigate("/mednieku-tests")}
+                className="mt-3 inline-flex text-sm font-semibold text-red-400 underline underline-offset-4 hover:cursor-pointer hover:opacity-80"
               >
-                Atpakaļ uz sākumu
+                Atpakaļ uz izvēlni
               </button>
             </div>
 
             {finished && result ? (
               <ResultsPanel
                 result={result}
-                onRestart={() => void startQuiz(rawQuestions, limitMode)}
-                onTry50={() => void startQuiz(rawQuestions, "50")}
-                onTryAll={() => void startQuiz(rawQuestions, "all")}
+                onRestart={() => {
+                  clearSavedProgress();
+                  void startQuiz(rawQuestions, limitMode);
+                }}
+                onTry50={() => {
+                  clearSavedProgress();
+                  void startQuizWithCount(rawQuestions, QUICK_RETRY_COUNT);
+                }}
+                onTryAll={() => {
+                  clearSavedProgress();
+                  void startQuiz(rawQuestions, "all");
+                }}
               />
             ) : (
               <>
@@ -649,7 +841,6 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
           />
         </div>
       </main>
-
     </div>
   );
 }
