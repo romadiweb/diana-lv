@@ -11,8 +11,8 @@ import ResultsPanel, { type QuizResult } from "../quiz/ResultsPanel";
 import { shuffleArray } from "../quiz/shuffle";
 
 // ✅ Paywall
-import { useAccess } from "../paywall/useAccess";
 import PaywallModal from "../paywall/PaywallModal";
+import { useAccess } from "../paywall/useAccess";
 
 type TopicRow = {
   id: string;
@@ -332,6 +332,107 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
     },
     [clearSavedProgress]
   );
+
+  const startExamQuiz = useCallback(async (count: number) => {
+    clearSavedProgress();
+
+    const { data: idRows, error: idErr } = await supabase.rpc("pick_random_question_ids", {
+      lim: count,
+    });
+
+    if (idErr) {
+      const msg = idErr.message?.toLowerCase() ?? "";
+      if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
+        setPaywallOpen(true);
+        return;
+      }
+      setError(idErr.message);
+      return;
+    }
+
+    const ids: string[] = (idRows ?? []).map((r: any) => r.id).filter(Boolean);
+
+    if (!ids.length) {
+      setError("Nav pieejamu jautājumu eksāmenam.");
+      return;
+    }
+
+    const res = await supabase
+      .from("questions")
+      .select(
+        `
+        id,
+        text,
+        multiple,
+        image_url,
+        image_alt,
+        explanation,
+        sort_order,
+        choices (
+          id,
+          text,
+          is_correct,
+          sort_order
+        )
+      `
+      )
+      .in("id", ids);
+
+    if (res.error) {
+      const msg = res.error.message?.toLowerCase() ?? "";
+      if (msg.includes("permission") || msg.includes("rls") || msg.includes("not allowed")) {
+        setPaywallOpen(true);
+        return;
+      }
+      setError(res.error.message);
+      return;
+    }
+
+    const freshQuestions = ((res.data ?? []) as any[])
+      .map((q: any) => ({
+        ...q,
+        choices: (q.choices ?? []).slice().sort((a: ChoiceRow, b: ChoiceRow) => {
+          const ao = a.sort_order ?? 0;
+          const bo = b.sort_order ?? 0;
+          return ao - bo;
+        }),
+      }))
+      .sort((a: any, b: any) => ids.indexOf(a.id) - ids.indexOf(b.id)) as QuestionRow[];
+
+    setRawQuestions(freshQuestions);
+
+    await preloadImages(collectImageUrls(freshQuestions));
+    if (preloadAbortRef.current?.signal.aborted) return;
+
+    const prepared: QuizQuestion[] = freshQuestions.map((q) => {
+      const base = {
+        id: q.id,
+        text: q.text,
+        multiple: !!q.multiple,
+        explanation: q.explanation ?? undefined,
+        choices: shuffleArray(q.choices).map((c) => ({
+          id: c.id,
+          text: c.text,
+          isCorrect: c.is_correct,
+        })),
+      };
+
+      return {
+        ...base,
+        imageUrl: q.image_url ?? undefined,
+        imageAlt: q.image_alt ?? undefined,
+        image_url: q.image_url ?? undefined,
+        image_alt: q.image_alt ?? undefined,
+      } as unknown as QuizQuestion;
+    });
+
+    setQuizQuestions(prepared);
+    setCurrentIndex(0);
+    setAnswersByQid({});
+    setFinished(false);
+    setShowSetup(false);
+    setLimitMode("all");
+  }, [clearSavedProgress]);
 
   // Load topic + questions (ONLY if allowed)
   useEffect(() => {
@@ -761,7 +862,11 @@ export default function TestPage({ topicSlug }: { topicSlug?: string }) {
                 }}
                 onTry50={() => {
                   clearSavedProgress();
-                  void startQuizWithCount(rawQuestions, QUICK_RETRY_COUNT);
+                  if (topic?.slug === "eksamens") {
+                    void startExamQuiz(QUICK_RETRY_COUNT);
+                  } else {
+                    void startQuizWithCount(rawQuestions, QUICK_RETRY_COUNT);
+                  }
                 }}
                 onTryAll={() => {
                   clearSavedProgress();

@@ -2,9 +2,11 @@ import { ChevronDown, Facebook, Instagram, Mail, Menu, Phone, X } from "lucide-r
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import PaywallModal from "../../paywall/PaywallModal";
+import { useAccess } from "../../paywall/useAccess";
 
 type NavbarProps = {
-  onOpenCourses?: () => void; // CTA action (button in top info bar)
+  onOpenCourses?: () => void; // kept for compatibility, but navbar no longer depends on it
 };
 
 type Category = {
@@ -18,6 +20,10 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
+  const { status } = useAccess();
 
   // Accent for underline + CTA button
   const ACCENT = "#c88f4c";
@@ -43,9 +49,49 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
         .order("sort_order", { ascending: true })
         .order("name", { ascending: true });
 
-      setCategories((data || []) as any);
+      setCategories((data || []) as Category[]);
     })();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (mounted) {
+        setIsLoggedIn(!!session);
+      }
+    };
+
+    void loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleTopButtonClick = async () => {
+    if (isLoggedIn) {
+      await supabase.auth.signOut();
+      return;
+    }
+
+    // open local modal directly
+    setPaywallOpen(true);
+
+    // keep this for compatibility if parent still uses it somewhere
+    onOpenCourses?.();
+  };
 
   /**
    * Desktop link style:
@@ -59,244 +105,244 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
     "pointer-events-none absolute -bottom-1 left-0 h-[3px] w-full origin-left transform rounded-full transition-all duration-300 ease-out";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#3F2021]/10 bg-[#FBF8F5]">
-      {/* Top info bar (DESKTOP ONLY) */}
-      <div className="hidden w-full bg-[#3F2021] text-[#FBF8F5] lg:block">
-        <div className="mx-auto flex h-10 w-full items-center justify-between gap-3 px-4 text-xs sm:px-6 lg:px-10">
-          <div className="flex items-center gap-4">
-            <a
-              className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
-              href="tel:+37126766112"
-            >
-              <Phone className="h-4 w-4" />
-              <span>+371 26766112</span>
-            </a>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-[#3F2021]/10 bg-[#FBF8F5]">
+        {/* Top info bar (DESKTOP ONLY) */}
+        <div className="hidden w-full bg-[#3F2021] text-[#FBF8F5] lg:block">
+          <div className="mx-auto flex h-10 w-full items-center justify-between gap-3 px-4 text-xs sm:px-6 lg:px-10">
+            <div className="flex items-center gap-4">
+              <a
+                className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
+                href="tel:+37126766112"
+              >
+                <Phone className="h-4 w-4" />
+                <span>+371 26766112</span>
+              </a>
 
-            <a
-              className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
-              href="tel:+37129173515"
-            >
-              <Phone className="h-4 w-4" />
-              <span>+371 29173515</span>
-            </a>
+              <a
+                className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
+                href="tel:+37129173515"
+              >
+                <Phone className="h-4 w-4" />
+                <span>+371 29173515</span>
+              </a>
 
-            <a
-              className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
-              href="mailto:gringogi@inbox.lv"
-            >
-              <Mail className="h-4 w-4" />
-              <span>info@dianahunt.lv</span>
-            </a>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <a
-              aria-label="Facebook"
-              className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
-              href="https://www.facebook.com/veikalsdiana/?locale=lv_LV"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Facebook className="h-4 w-4" />
-            </a>
-            <a
-              aria-label="Instagram"
-              className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
-              href="https://www.instagram.com/veikals_diana/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
-
-            {/* CTA lives in the info row (desktop) */}
-            <button
-              type="button"
-              onClick={onOpenCourses}
-              className="ml-2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 hover:cursor-pointer"
-              style={{ backgroundColor: ACCENT }}
-            >
-              <a href="/mednieku-tests">Mednieku eksāmena tests</a>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main nav */}
-      <div className="bg-[#FBF8F5]">
-        <div className="mx-auto flex h-[72px] w-full items-center justify-between px-4 sm:px-6 lg:px-10">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link
-              to="/"
-              aria-label="Doties uz sākumlapu"
-              className="inline-flex items-center"
-              onClick={() => {
-                setMobileOpen(false);
-                setMobileShopOpen(false);
-              }}
-            >
-              <img
-                src="/diana-logo.png"
-                alt="Diana logo"
-                className="h-16 w-auto object-contain transition-transform hover:scale-[1.02] sm:h-20 lg:h-30"
-              />
-              <div className="leading-tight">
-                <p className="text-base font-semibold text-[#3F2021] sm:text-lg">DIANA</p>
-                <p className="text-xs text-[#3F2021]/70 sm:text-sm">Mednieku kursi un veikals</p>
-              </div>
-            </Link>
-          </div>
-
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-7 lg:flex">
-            {nav.map((item) => (
-              <NavLink key={item.to} to={item.to} className={linkBase}>
-                {({ isActive }) => (
-                  <>
-                    <span>{item.label}</span>
-                    <span
-                      className={[
-                        underlineBase,
-                        isActive
-                          ? "scale-x-100 opacity-100"
-                          : "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
-                      ].join(" ")}
-                      style={{ backgroundColor: ACCENT }}
-                    />
-                  </>
-                )}
-              </NavLink>
-            ))}
-
-            {/* ✅ Veikals: clickable + dropdown categories */}
-            <div className="group relative">
-              <NavLink to="/veikals" className={`${linkBase} inline-flex items-center gap-2`}>
-                {({ isActive }) => (
-                  <>
-                    <span>Veikals</span>
-                    {categories.length > 0 && (
-                      <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
-                    )}
-                    <span
-                      className={[
-                        underlineBase,
-                        isActive
-                          ? "scale-x-100 opacity-100"
-                          : "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
-                      ].join(" ")}
-                      style={{ backgroundColor: ACCENT }}
-                    />
-                  </>
-                )}
-              </NavLink>
-
-              {categories.length > 0 && (
-                <div
-                  className="absolute right-0 top-full z-50 mt-0 w-72 origin-top-right rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur
-                             invisible translate-y-2 scale-95 opacity-0 transition-all duration-200 ease-out
-                             group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100
-                             before:absolute before:left-0 before:right-0 before:-top-3 before:h-3 before:content-['']"
-                >
-                  <NavLink
-                    to="/veikals"
-                    className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
-                  >
-                    Visas preces
-                  </NavLink>
-
-                  <div className="my-1 h-px bg-black/5" />
-
-                  {categories.map((c) => (
-                    <NavLink
-                      key={c.id}
-                      to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
-                      className="block rounded-xl px-3 py-2 text-sm font-medium text-[#3F2021] hover:bg-[#3F2021]/10"
-                    >
-                      {c.name}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
+              <a
+                className="inline-flex items-center gap-2 text-[#FBF8F5]/90 hover:text-[#FBF8F5] hover:underline"
+                href="mailto:gringogi@inbox.lv"
+              >
+                <Mail className="h-4 w-4" />
+                <span>info@dianahunt.lv</span>
+              </a>
             </div>
-          </nav>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            onClick={() => {
-              setMobileOpen((v) => {
-                const next = !v;
-                if (!next) setMobileShopOpen(false);
-                return next;
-              });
-            }}
-            className="inline-flex items-center justify-center rounded-xl border border-[#3F2021]/20 bg-[#3F2021] p-2 text-[#FBF8F5] transition hover:bg-[#3F2021]/10 lg:hidden"
-            aria-label={mobileOpen ? "Aizvērt izvēlni" : "Atvērt izvēlni"}
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+            <div className="flex items-center gap-2">
+              <a
+                aria-label="Facebook"
+                className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
+                href="https://www.facebook.com/veikalsdiana/?locale=lv_LV"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
+              <a
+                aria-label="Instagram"
+                className="rounded-md p-1 text-[#FBF8F5]/90 hover:bg-[#FBF8F5]/10 hover:text-[#FBF8F5]"
+                href="https://www.instagram.com/veikals_diana/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+
+              <button
+                type="button"
+                onClick={handleTopButtonClick}
+                className="ml-2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 hover:cursor-pointer"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {isLoggedIn ? "Izrakstīties" : "Pierakstīties"}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Mobile panel */}
-        {mobileOpen && (
-          <div className="border-t border-[#3F2021]/10 bg-[#FBF8F5] lg:hidden">
-            <div className="mx-auto flex w-full flex-col gap-1 px-4 py-3 sm:px-6">
+        {/* Main nav */}
+        <div className="bg-[#FBF8F5]">
+          <div className="mx-auto flex h-[72px] w-full items-center justify-between px-4 sm:px-6 lg:px-10">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Link
+                to="/"
+                aria-label="Doties uz sākumlapu"
+                className="inline-flex items-center"
+                onClick={() => {
+                  setMobileOpen(false);
+                  setMobileShopOpen(false);
+                }}
+              >
+                <img
+                  src="/diana-logo.png"
+                  alt="Diana logo"
+                  className="h-16 w-auto object-contain transition-transform hover:scale-[1.02] sm:h-20 lg:h-30"
+                />
+                <div className="leading-tight">
+                  <p className="text-base font-semibold text-[#3F2021] sm:text-lg">DIANA</p>
+                  <p className="text-xs text-[#3F2021]/70 sm:text-sm">Mednieku kursi un veikals</p>
+                </div>
+              </Link>
+            </div>
+
+            {/* Desktop nav */}
+            <nav className="hidden items-center gap-7 lg:flex">
               {nav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => {
-                    setMobileOpen(false);
-                    setMobileShopOpen(false);
-                  }}
-                  className={({ isActive }) =>
-                    [
-                      "rounded-xl px-3 py-2 text-sm font-semibold transition",
-                      isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
-                    ].join(" ")
-                  }
-                >
-                  {item.label}
+                <NavLink key={item.to} to={item.to} className={linkBase}>
+                  {({ isActive }) => (
+                    <>
+                      <span>{item.label}</span>
+                      <span
+                        className={[
+                          underlineBase,
+                          isActive
+                            ? "scale-x-100 opacity-100"
+                            : "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
+                        ].join(" ")}
+                        style={{ backgroundColor: ACCENT }}
+                      />
+                    </>
+                  )}
                 </NavLink>
               ))}
 
-              {/* ✅ Mobile: Veikals + categories */}
-              <details
-                className="group mt-2 rounded-xl border border-[#3F2021]/10 bg-white/70 px-2 py-1"
-                open={mobileShopOpen}
-                onToggle={(e) => setMobileShopOpen((e.currentTarget as HTMLDetailsElement).open)}
-              >
-                <summary
-                  className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
-                  aria-expanded={mobileShopOpen}
-                >
-                  <span>Veikals</span>
-                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
-                </summary>
+              {/* ✅ Veikals: clickable + dropdown categories */}
+              <div className="group relative">
+                <NavLink to="/veikals" className={`${linkBase} inline-flex items-center gap-2`}>
+                  {({ isActive }) => (
+                    <>
+                      <span>Veikals</span>
+                      {categories.length > 0 && (
+                        <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+                      )}
+                      <span
+                        className={[
+                          underlineBase,
+                          isActive
+                            ? "scale-x-100 opacity-100"
+                            : "scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-100",
+                        ].join(" ")}
+                        style={{ backgroundColor: ACCENT }}
+                      />
+                    </>
+                  )}
+                </NavLink>
 
-                <div className="pb-2 pt-1">
+                {categories.length > 0 && (
+                  <div
+                    className="absolute right-0 top-full z-50 mt-0 w-72 origin-top-right rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur
+                               invisible translate-y-2 scale-95 opacity-0 transition-all duration-200 ease-out
+                               group-hover:visible group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100
+                               before:absolute before:left-0 before:right-0 before:-top-3 before:h-3 before:content-['']"
+                  >
+                    <NavLink
+                      to="/veikals"
+                      className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
+                    >
+                      Visas preces
+                    </NavLink>
+
+                    <div className="my-1 h-px bg-black/5" />
+
+                    {categories.map((c) => (
+                      <NavLink
+                        key={c.id}
+                        to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
+                        className="block rounded-xl px-3 py-2 text-sm font-medium text-[#3F2021] hover:bg-[#3F2021]/10"
+                      >
+                        {c.name}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </nav>
+
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen((v) => {
+                  const next = !v;
+                  if (!next) setMobileShopOpen(false);
+                  return next;
+                });
+              }}
+              className="inline-flex items-center justify-center rounded-xl border border-[#3F2021]/20 bg-[#3F2021] p-2 text-[#FBF8F5] transition hover:bg-[#3F2021]/10 lg:hidden"
+              aria-label={mobileOpen ? "Aizvērt izvēlni" : "Atvērt izvēlni"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+
+          {/* Mobile panel */}
+          {mobileOpen && (
+            <div className="border-t border-[#3F2021]/10 bg-[#FBF8F5] lg:hidden">
+              <div className="mx-auto flex w-full flex-col gap-1 px-4 py-3 sm:px-6">
+                {nav.map((item) => (
                   <NavLink
-                    to="/veikals"
+                    key={item.to}
+                    to={item.to}
                     onClick={() => {
                       setMobileOpen(false);
                       setMobileShopOpen(false);
                     }}
                     className={({ isActive }) =>
                       [
-                        "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
-                        isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                        "rounded-xl px-3 py-2 text-sm font-semibold transition",
+                        isActive
+                          ? "bg-[#3F2021] text-[#FBF8F5]"
+                          : "text-[#3F2021] hover:bg-[#3F2021]/10",
                       ].join(" ")
                     }
                   >
-                    Visas preces
+                    {item.label}
                   </NavLink>
+                ))}
 
-                  {categories.map((c) => (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (isLoggedIn) {
+                      await supabase.auth.signOut();
+                    } else {
+                      setPaywallOpen(true);
+                    }
+                    setMobileOpen(false);
+                    setMobileShopOpen(false);
+                  }}
+                  className="mt-2 rounded-xl bg-[#c88f4c] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  {isLoggedIn ? "Izrakstīties" : "Pierakstīties"}
+                </button>
+
+                {/* ✅ Mobile: Veikals + categories */}
+                <details
+                  className="group mt-2 rounded-xl border border-[#3F2021]/10 bg-white/70 px-2 py-1"
+                  open={mobileShopOpen}
+                  onToggle={(e) => setMobileShopOpen((e.currentTarget as HTMLDetailsElement).open)}
+                >
+                  <summary
+                    className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold text-[#3F2021] hover:bg-[#3F2021]/10"
+                    aria-expanded={mobileShopOpen}
+                  >
+                    <span>Veikals</span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                  </summary>
+
+                  <div className="pb-2 pt-1">
                     <NavLink
-                      key={c.id}
-                      to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
+                      to="/veikals"
                       onClick={() => {
                         setMobileOpen(false);
                         setMobileShopOpen(false);
@@ -304,19 +350,49 @@ export default function Navbar({ onOpenCourses }: NavbarProps) {
                       className={({ isActive }) =>
                         [
                           "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
-                          isActive ? "bg-[#3F2021] text-[#FBF8F5]" : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                          isActive
+                            ? "bg-[#3F2021] text-[#FBF8F5]"
+                            : "text-[#3F2021] hover:bg-[#3F2021]/10",
                         ].join(" ")
                       }
                     >
-                      {c.name}
+                      Visas preces
                     </NavLink>
-                  ))}
-                </div>
-              </details>
+
+                    {categories.map((c) => (
+                      <NavLink
+                        key={c.id}
+                        to={`/veikals?cat=${encodeURIComponent(c.slug)}`}
+                        onClick={() => {
+                          setMobileOpen(false);
+                          setMobileShopOpen(false);
+                        }}
+                        className={({ isActive }) =>
+                          [
+                            "mt-1 block rounded-lg px-3 py-2 text-sm font-medium transition",
+                            isActive
+                              ? "bg-[#3F2021] text-[#FBF8F5]"
+                              : "text-[#3F2021] hover:bg-[#3F2021]/10",
+                          ].join(" ")
+                        }
+                      >
+                        {c.name}
+                      </NavLink>
+                    ))}
+                  </div>
+                </details>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </header>
+          )}
+        </div>
+      </header>
+
+      <PaywallModal
+        open={paywallOpen}
+        status={status}
+        onClose={() => setPaywallOpen(false)}
+        onSuccess={() => setPaywallOpen(false)}
+      />
+    </>
   );
 }
